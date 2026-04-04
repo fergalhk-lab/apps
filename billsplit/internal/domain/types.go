@@ -63,3 +63,10 @@ type Group struct {
 	Currency string   `json:"currency"`
 	Events   []Event  `json:"events"`
 }
+
+// Settlement represents a single payment that would resolve outstanding debts.
+type Settlement struct {
+	From   string  `json:"from"`
+	To     string  `json:"to"`
+	Amount float64 `json:"amount"`
+}
