@@ -46,6 +46,24 @@ services:
       minio-init:
         condition: service_completed_successfully
 
+  # One-shot container to sync exchange rates from open.er-api.com to S3.
+  # Run `docker compose logs fxrates-sync` to see the result.
+  fxrates-sync:
+    build:
+      context: ..
+      dockerfile: billsplit/Dockerfile
+    entrypoint: ["/usr/local/bin/fxrates-sync"]
+    environment:
+      S3_BUCKET: billsplit
+      AWS_REGION: us-east-1
+      S3_ENDPOINT: http://minio:9000
+      JWT_SECRET: local-dev-secret-change-me
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
   app:
     build:
       context: ..

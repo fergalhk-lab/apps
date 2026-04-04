@@ -26,4 +26,8 @@ type Store interface {
 	// If ifMatchETag is non-empty, only writes if the current ETag matches.
 	// Returns ErrConflict if the condition fails.
 	WriteObject(ctx context.Context, key string, data []byte, ifMatchETag string) error
+
+	// ForceWriteObject writes data to key unconditionally, creating or
+	// overwriting the object regardless of whether it already exists.
+	ForceWriteObject(ctx context.Context, key string, data []byte) error
 }

@@ -76,3 +76,16 @@ func (s *S3Store) WriteObject(ctx context.Context, key string, data []byte, ifMa
 	}
 	return nil
 }
+
+func (s *S3Store) ForceWriteObject(ctx context.Context, key string, data []byte) error {
+	_, err := s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(data),
+		ContentType: aws.String("application/json"),
+	})
+	if err != nil {
+		return fmt.Errorf("s3 force put %s: %w", key, err)
+	}
+	return nil
+}

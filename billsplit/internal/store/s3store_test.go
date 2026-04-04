@@ -111,6 +111,29 @@ func TestConflictOnStaleETag(t *testing.T) {
 	}
 }
 
+func TestForceWriteObject(t *testing.T) {
+	s := newTestStore(t)
+	ctx := context.Background()
+
+	// Works when object does not exist.
+	if err := s.ForceWriteObject(ctx, "obj.json", []byte(`{"v":1}`)); err != nil {
+		t.Fatalf("force write (create): %v", err)
+	}
+
+	// Works when object already exists — overwrites without conflict.
+	if err := s.ForceWriteObject(ctx, "obj.json", []byte(`{"v":2}`)); err != nil {
+		t.Fatalf("force write (overwrite): %v", err)
+	}
+
+	got, _, err := s.ReadObject(ctx, "obj.json")
+	if err != nil {
+		t.Fatalf("read after force write: %v", err)
+	}
+	if string(got) != `{"v":2}` {
+		t.Fatalf("got %s, want {\"v\":2}", got)
+	}
+}
+
 func TestCreateIfNotExists_FailsIfExists(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
