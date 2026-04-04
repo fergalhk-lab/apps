@@ -23,13 +23,6 @@ export default function GroupDetail() {
   const [showExpense, setShowExpense] = useState(false)
   const [showSettlement, setShowSettlement] = useState(false)
 
-  useEffect(() => {
-    if (groupId) {
-      loadGroup()
-      loadEvents(0)
-    }
-  }, [groupId])
-
   async function loadGroup() {
     try {
       const g = await api.getGroup(groupId!)
@@ -50,6 +43,14 @@ export default function GroupDetail() {
       toast.error(err instanceof Error ? err.message : 'Failed to load expenses')
     }
   }
+
+  useEffect(() => {
+    if (groupId) {
+      loadGroup()
+      loadEvents(0)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId])
 
   async function handleDeleteExpense(eventId: string) {
     try {

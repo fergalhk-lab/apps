@@ -1,4 +1,4 @@
-// frontend-new/src/components/AddExpenseModal.tsx
+// frontend/src/components/AddExpenseModal.tsx
 import { useState } from 'react'
 import { api, type Group } from '@/api'
 import { Button } from '@/components/ui/button'
@@ -69,7 +69,7 @@ export default function AddExpenseModal({ group, onClose, onSaved }: Props) {
   const total = parseFloat(amount)
   const splits = computeSplits(splitMode, total, group.members, ratios, fixed)
   const splitsTotal = splits ? Object.values(splits).reduce((a, b) => a + b, 0) : 0
-  const splitsMismatch = amount && splits && Math.abs(splitsTotal - total) > 0.01
+  const splitsMismatch = splitMode === 'fixed' && amount && splits && Math.abs(splitsTotal - total) > 0.01
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

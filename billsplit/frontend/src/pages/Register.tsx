@@ -1,4 +1,4 @@
-// frontend-new/src/pages/Register.tsx
+// frontend/src/pages/Register.tsx
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '@/api'

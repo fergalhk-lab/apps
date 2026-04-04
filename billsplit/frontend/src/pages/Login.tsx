@@ -1,4 +1,4 @@
-// frontend-new/src/pages/Login.tsx
+// frontend/src/pages/Login.tsx
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api, setToken } from '@/api'

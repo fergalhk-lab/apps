@@ -1,4 +1,4 @@
-// frontend-new/src/components/ThemeProvider.tsx
+// frontend/src/components/ThemeProvider.tsx
 import { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'

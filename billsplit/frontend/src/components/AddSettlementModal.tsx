@@ -1,4 +1,4 @@
-// frontend-new/src/components/AddSettlementModal.tsx
+// frontend/src/components/AddSettlementModal.tsx
 import { useState } from 'react'
 import { api, type Group } from '@/api'
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,10 @@ export default function AddSettlementModal({ group, onClose, onSaved }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    if (from === to) {
+      setError('Cannot settle with yourself')
+      return
+    }
     try {
       await api.addSettlement(group.id, { from, to, amount: parseFloat(amount) })
       onSaved()

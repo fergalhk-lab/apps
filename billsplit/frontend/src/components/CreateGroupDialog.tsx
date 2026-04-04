@@ -1,4 +1,4 @@
-// frontend-new/src/components/CreateGroupDialog.tsx
+// frontend/src/components/CreateGroupDialog.tsx
 import { useState, useEffect } from 'react'
 import { api, type UserSummary } from '@/api'
 import { Button } from '@/components/ui/button'

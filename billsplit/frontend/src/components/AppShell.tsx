@@ -1,4 +1,4 @@
-// frontend-new/src/components/AppShell.tsx
+// frontend/src/components/AppShell.tsx
 import { useEffect, useState } from 'react'
 import { Link, Outlet, useMatch, useNavigate } from 'react-router-dom'
 import { Sun, Moon, Monitor, Plus } from 'lucide-react'
@@ -23,10 +23,6 @@ export default function AppShell() {
   const token = localStorage.getItem(TOKEN_KEY) ?? ''
   const { username, isAdmin } = parseToken(token)
 
-  useEffect(() => {
-    loadGroups()
-  }, [])
-
   async function loadGroups() {
     try {
       const list = await api.getGroups()
@@ -35,6 +31,10 @@ export default function AppShell() {
       toast.error(err instanceof Error ? err.message : 'Failed to load groups')
     }
   }
+
+  useEffect(() => {
+    loadGroups()
+  }, []) // loadGroups is intentionally excluded — initial load only
 
   function handleLogout() {
     clearToken()

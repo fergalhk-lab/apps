@@ -1,4 +1,4 @@
-// frontend-new/src/api.ts
+// frontend/src/api.ts
 
 const BASE = '/api'
 export const TOKEN_KEY = 'billsplit_token'
@@ -28,7 +28,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
   if (res.status === 204) return null as T
   const data = await res.json()
-  if (!res.ok) throw Object.assign(new Error(data.error || 'Request failed'), { status: res.status })
+  if (!res.ok) {
+    if (res.status === 401) {
+      clearToken()
+      window.location.href = '/login'
+    }
+    throw Object.assign(new Error(data.error || 'Request failed'), { status: res.status })
+  }
   return data as T
 }
 
@@ -77,7 +83,7 @@ export const api = {
   getUsers: () => request<{ users: UserSummary[] }>('GET', '/users'),
 
   createGroup: (name: string, currency: string, members: string[]) =>
-    request<Group>('POST', '/groups', { name, currency, members }),
+    request<{ id: string }>('POST', '/groups', { name, currency, members }),
 
   getGroup: (id: string) => request<Group>('GET', `/groups/${id}`),
 
