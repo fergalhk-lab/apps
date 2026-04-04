@@ -9,6 +9,10 @@ services:
       cpu: "100m"
       memory: "128Mi"
     command: ["/usr/local/bin/billsplit"]
+    iamRoleARN: "arn:aws:iam::740994137039:role/k8s-mgmt-billsplit"
+    env:
+      - name: S3_BUCKET
+        rawValue: "fergalhk-billsplit-live"
     ingress:
       port: 8080
       public:
@@ -24,6 +28,10 @@ initJobs:
       memory: "128Mi"
     command: ["/usr/local/bin/seed"]
     args: ["-initial"]
+    iamRoleARN: "arn:aws:iam::740994137039:role/k8s-mgmt-billsplit"
+    env:
+      - name: S3_BUCKET
+        rawValue: "fergalhk-billsplit-live"
 
 cronJobs:
   - name: fxrates-sync
@@ -35,4 +43,7 @@ cronJobs:
       memory: "128Mi"
     command: ["/usr/local/bin/fxrates-sync"]
     iamRoleARN: "arn:aws:iam::740994137039:role/k8s-mgmt-billsplit"
+    env:
+      - name: S3_BUCKET
+        rawValue: "fergalhk-billsplit-live"
     schedule: "0 0 * * *"
