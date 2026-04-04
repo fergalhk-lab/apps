@@ -67,7 +67,7 @@ func ComputeSettlements(balances map[string]float64) []Settlement {
 	sort.Slice(debtors, func(i, j int) bool { return debtors[i].user < debtors[j].user })
 	sort.Slice(creditors, func(i, j int) bool { return creditors[i].user < creditors[j].user })
 
-	var result []Settlement
+	result := make([]Settlement, 0)
 	i, j := 0, 0
 	for i < len(debtors) && j < len(creditors) {
 		amount := math.Min(debtors[i].amount, creditors[j].amount)
