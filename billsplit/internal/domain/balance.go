@@ -71,13 +71,16 @@ func ComputeSettlements(balances map[string]float64) []Settlement {
 	i, j := 0, 0
 	for i < len(debtors) && j < len(creditors) {
 		amount := math.Min(debtors[i].amount, creditors[j].amount)
-		result = append(result, Settlement{
-			From:   debtors[i].user,
-			To:     creditors[j].user,
-			Amount: math.Round(amount*100) / 100,
-		})
 		debtors[i].amount -= amount
 		creditors[j].amount -= amount
+		rounded := math.Round(amount*100) / 100
+		if rounded > 0 {
+			result = append(result, Settlement{
+				From:   debtors[i].user,
+				To:     creditors[j].user,
+				Amount: rounded,
+			})
+		}
 		if debtors[i].amount < 1e-9 {
 			i++
 		}

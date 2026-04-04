@@ -196,16 +196,27 @@ func TestComputeSettlements_ChainedDebts(t *testing.T) {
 
 func TestComputeSettlements_FractionalAmounts(t *testing.T) {
 	// Splits that produce fractions — ensure amounts are rounded to 2dp
+	// bob and carol each owe alice ~16.67
 	balances := map[string]float64{"alice": 33.34, "bob": -16.67, "carol": -16.67}
 	settlements := domain.ComputeSettlements(balances)
 	if len(settlements) != 2 {
 		t.Fatalf("want 2 settlements, got %d: %v", len(settlements), settlements)
+	}
+	// bob < carol alphabetically
+	if settlements[0].From != "bob" || settlements[0].To != "alice" {
+		t.Errorf("unexpected settlement[0] direction: %+v", settlements[0])
+	}
+	if settlements[1].From != "carol" || settlements[1].To != "alice" {
+		t.Errorf("unexpected settlement[1] direction: %+v", settlements[1])
 	}
 	for _, s := range settlements {
 		// Amount should be rounded to at most 2 decimal places
 		rounded := math.Round(s.Amount*100) / 100
 		if s.Amount != rounded {
 			t.Errorf("amount %v is not rounded to 2dp", s.Amount)
+		}
+		if s.Amount <= 0 {
+			t.Errorf("amount must be positive, got %v", s.Amount)
 		}
 	}
 }
@@ -313,6 +324,34 @@ func TestComputeSettlements_LargeGroup(t *testing.T) {
 		}
 		if s.Amount != 20 {
 			t.Errorf("expected amount 20, got: %+v", s)
+		}
+	}
+}
+
+func TestComputeSettlements_IrrationalSplit(t *testing.T) {
+	// $10 split 3 ways: each person owes 3.333..., alice paid so alice is owed 6.666...
+	// In practice ComputeBalances would produce: alice +6.666..., bob -3.333..., carol -3.333...
+	// We test ComputeSettlements directly with these irrational values.
+	third := 10.0 / 3.0
+	balances := map[string]float64{"alice": 2 * third, "bob": -third, "carol": -third}
+	settlements := domain.ComputeSettlements(balances)
+	// Should produce exactly 2 settlements (not 3 due to rounding phantom)
+	if len(settlements) != 2 {
+		t.Fatalf("want 2 settlements, got %d: %v", len(settlements), settlements)
+	}
+	if settlements[0].From != "bob" || settlements[0].To != "alice" {
+		t.Errorf("unexpected settlement[0]: %+v", settlements[0])
+	}
+	if settlements[1].From != "carol" || settlements[1].To != "alice" {
+		t.Errorf("unexpected settlement[1]: %+v", settlements[1])
+	}
+	for _, s := range settlements {
+		if s.Amount <= 0 {
+			t.Errorf("amount must be positive, got %v", s.Amount)
+		}
+		rounded := math.Round(s.Amount*100) / 100
+		if s.Amount != rounded {
+			t.Errorf("amount %v is not rounded to 2dp", s.Amount)
 		}
 	}
 }
