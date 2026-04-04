@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 
@@ -15,6 +16,9 @@ import (
 )
 
 func main() {
+	initial := flag.Bool("initial", false, "only create an invite token if no tokens have ever been created (including used ones)")
+	flag.Parse()
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("config: %v", err)
@@ -42,8 +46,20 @@ func main() {
 
 	st := localstore.NewS3Store(s3Client, cfg.S3Bucket)
 	invites := service.NewInviteService(st)
+	ctx := context.Background()
 
-	code, err := invites.GenerateInvite(context.Background(), true)
+	if *initial {
+		has, err := invites.HasInvites(ctx)
+		if err != nil {
+			log.Fatalf("check invites: %v", err)
+		}
+		if has {
+			log.Println("invites already exist, skipping")
+			return
+		}
+	}
+
+	code, err := invites.GenerateInvite(ctx, true)
 	if err != nil {
 		log.Fatalf("generate invite: %v", err)
 	}
