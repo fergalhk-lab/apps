@@ -108,7 +108,9 @@ export const api = {
 // The server enforces admin authorisation; this is UI display only.
 export function parseToken(token: string): TokenPayload {
   try {
-    return JSON.parse(atob(token.split('.')[1])) as TokenPayload
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+    return JSON.parse(atob(padded)) as TokenPayload
   } catch {
     return { username: '', isAdmin: false }
   }

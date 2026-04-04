@@ -12,6 +12,16 @@ describe('parseToken', () => {
     expect(result.isAdmin).toBe(true)
   })
 
+  it('decodes a base64url-encoded JWT payload (real JWT format)', () => {
+    // Real JWTs use base64url: '+' → '-', '/' → '_', no padding
+    const json = JSON.stringify({ username: 'bob', isAdmin: false })
+    const b64url = btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+    const token = `header.${b64url}.sig`
+    const result = parseToken(token)
+    expect(result.username).toBe('bob')
+    expect(result.isAdmin).toBe(false)
+  })
+
   it('returns safe defaults for a malformed token', () => {
     const result = parseToken('not-a-jwt')
     expect(result.username).toBe('')
