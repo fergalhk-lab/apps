@@ -1,0 +1,96 @@
+// billsplit/internal/handler/auth.go
+package handler
+
+import (
+	"errors"
+	"net/http"
+
+	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
+	"github.com/fergalhk-lab/apps/billsplit/internal/service"
+	"go.uber.org/zap"
+)
+
+func authRegisterHandler(auth *service.AuthService, logger *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Username   string `json:"username"`
+			Password   string `json:"password"`
+			InviteCode string `json:"inviteCode"`
+		}
+		if err := decodeJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		if err := auth.Register(r.Context(), req.Username, req.Password, req.InviteCode); err != nil {
+			switch {
+			case errors.Is(err, service.ErrInvalidInvite):
+				writeError(w, http.StatusBadRequest, err.Error())
+			case errors.Is(err, service.ErrUsernameTaken):
+				writeError(w, http.StatusConflict, err.Error())
+			default:
+				logger.Error("registration failed", zap.Error(err))
+				writeError(w, http.StatusInternalServerError, "registration failed")
+			}
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func authLoginHandler(auth *service.AuthService, secureCookie bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		if err := decodeJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid request body")
+			return
+		}
+		token, claims, err := auth.Login(r.Context(), req.Username, req.Password)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "invalid credentials")
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     middleware.SessionCookieName,
+			Value:    token,
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			Secure:   secureCookie,
+			Path:     "/",
+			MaxAge:   86400,
+		})
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"username": claims.Username,
+			"isAdmin":  claims.IsAdmin,
+		})
+	}
+}
+
+func authLogoutHandler(secureCookie bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     middleware.SessionCookieName,
+			Value:    "",
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			Secure:   secureCookie,
+			Path:     "/",
+			MaxAge:   -1,
+		})
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func listUsersHandler(auth *service.AuthService, logger *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		users, err := auth.ListUsers(r.Context())
+		if err != nil {
+			logger.Error("list users failed", zap.Error(err))
+			writeError(w, http.StatusInternalServerError, "failed to list users")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]interface{}{"users": users})
+	}
+}

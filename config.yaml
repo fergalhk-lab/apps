@@ -1,0 +1,14 @@
+common:
+  ecr:
+    pushIAMRoleARN: arn:aws:iam::740994137039:role/gh-ecr-fergalhk-lab-apps
+    region: eu-west-1
+    imagePrefix: 740994137039.dkr.ecr.eu-west-1.amazonaws.com/apps
+
+apps:
+  - name: billsplit
+    path: billsplit/
+    tests:
+      - name: go
+        run: go test -v ./billsplit/...
+      - name: frontend
+        run: npm --prefix billsplit/frontend ci && npm --prefix billsplit/frontend test

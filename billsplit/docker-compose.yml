@@ -1,0 +1,86 @@
+services:
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # One-shot container to create the S3 bucket on first run
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/billsplit
+      "
+
+  # One-shot container to generate an admin invite code on startup.
+  # Run `docker compose logs seed` to retrieve the invite code.
+  seed:
+    build:
+      context: ..
+      dockerfile: billsplit/Dockerfile
+    entrypoint: ["/usr/local/bin/seed"]
+    environment:
+      S3_BUCKET: billsplit
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL_S3: http://minio:9000
+      JWT_SECRET: local-dev-secret-change-me
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+  # One-shot container to sync exchange rates from open.er-api.com to S3.
+  # Run `docker compose logs fxrates-sync` to see the result.
+  fxrates-sync:
+    build:
+      context: ..
+      dockerfile: billsplit/Dockerfile
+    entrypoint: ["/usr/local/bin/fxrates-sync"]
+    environment:
+      S3_BUCKET: billsplit
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL_S3: http://minio:9000
+      JWT_SECRET: local-dev-secret-change-me
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+  app:
+    build:
+      context: ..
+      dockerfile: billsplit/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      S3_BUCKET: billsplit
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT_URL_S3: http://minio:9000
+      JWT_SECRET: local-dev-secret-change-me
+      PORT: "8080"
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+volumes:
+  minio-data:
