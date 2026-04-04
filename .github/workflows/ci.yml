@@ -24,6 +24,9 @@ jobs:
     name: ${{ matrix.name }}
     needs: generate-matrix
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
