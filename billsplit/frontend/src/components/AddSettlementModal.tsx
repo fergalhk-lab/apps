@@ -22,12 +22,15 @@ interface Props {
   group: Group
   onClose: () => void
   onSaved: () => void
+  initialFrom?: string
+  initialTo?: string
+  initialAmount?: number
 }
 
-export default function AddSettlementModal({ group, onClose, onSaved }: Props) {
-  const [from, setFrom] = useState(group.members[0] ?? '')
-  const [to, setTo] = useState(group.members[1] ?? group.members[0] ?? '')
-  const [amount, setAmount] = useState('')
+export default function AddSettlementModal({ group, onClose, onSaved, initialFrom, initialTo, initialAmount }: Props) {
+  const [from, setFrom] = useState(initialFrom ?? group.members[0] ?? '')
+  const [to, setTo] = useState(initialTo ?? group.members[1] ?? group.members[0] ?? '')
+  const [amount, setAmount] = useState(initialAmount != null ? initialAmount.toFixed(2) : '')
   const [error, setError] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {

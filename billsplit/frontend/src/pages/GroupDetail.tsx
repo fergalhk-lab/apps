@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useOutletContext } from 'react-router-dom'
 import { toast } from 'sonner'
-import { api, type Group, type GroupEvent } from '@/api'
+import { api, type Group, type GroupEvent, type Settlement } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +22,7 @@ export default function GroupDetail() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [showExpense, setShowExpense] = useState(false)
   const [showSettlement, setShowSettlement] = useState(false)
+  const [settlementPrefill, setSettlementPrefill] = useState<Settlement | null>(null)
 
   async function loadGroup() {
     try {
@@ -103,6 +104,41 @@ export default function GroupDetail() {
           ))}
         </CardContent>
       </Card>
+
+      {/* Settle up */}
+      {(group.settlements?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Settle up
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {group.settlements!.map((s, i) => (
+              <div key={i} className="flex justify-between items-center">
+                <div className="text-sm">
+                  <span className="font-medium">{s.from}</span>
+                  <span className="text-muted-foreground mx-2">→</span>
+                  <span className="font-medium">{s.to}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold">
+                    {group.currency} {s.amount.toFixed(2)}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-7"
+                    onClick={() => { setSettlementPrefill(s); setShowSettlement(true) }}
+                  >
+                    Pay
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* History */}
       <div className="space-y-2">
@@ -198,8 +234,11 @@ export default function GroupDetail() {
       {showSettlement && (
         <AddSettlementModal
           group={group}
-          onClose={() => setShowSettlement(false)}
-          onSaved={() => { setShowSettlement(false); refresh() }}
+          onClose={() => { setShowSettlement(false); setSettlementPrefill(null) }}
+          onSaved={() => { setShowSettlement(false); setSettlementPrefill(null); refresh() }}
+          initialFrom={settlementPrefill?.from}
+          initialTo={settlementPrefill?.to}
+          initialAmount={settlementPrefill?.amount}
         />
       )}
     </div>
