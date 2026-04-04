@@ -28,3 +28,32 @@ func TestGenerateInvite(t *testing.T) {
 		t.Fatalf("register with generated invite: %v", err)
 	}
 }
+
+func TestHasInvites(t *testing.T) {
+	st := newTestStore(t)
+	invites := service.NewInviteService(st)
+	ctx := context.Background()
+
+	// No invites on a fresh store
+	has, err := invites.HasInvites(ctx)
+	if err != nil {
+		t.Fatalf("HasInvites on empty store: %v", err)
+	}
+	if has {
+		t.Fatal("expected false on empty store, got true")
+	}
+
+	// Generate one invite
+	if _, err := invites.GenerateInvite(ctx, false); err != nil {
+		t.Fatalf("GenerateInvite: %v", err)
+	}
+
+	// Now should have invites
+	has, err = invites.HasInvites(ctx)
+	if err != nil {
+		t.Fatalf("HasInvites after generate: %v", err)
+	}
+	if !has {
+		t.Fatal("expected true after generating an invite, got false")
+	}
+}
