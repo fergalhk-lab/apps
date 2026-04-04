@@ -3,10 +3,11 @@ package service_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupExpenseTest(t *testing.T) (*service.AuthService, *service.InviteService, *service.GroupService, *service.ExpenseService) {
@@ -26,25 +27,17 @@ func registerAndCreateGroup(t *testing.T, auth *service.AuthService, invites *se
 	ctx := context.Background()
 
 	codeA, err := invites.GenerateInvite(ctx, false)
-	if err != nil {
-		t.Fatalf("generate invite alice: %v", err)
-	}
-	if err := auth.Register(ctx, "alice", "pw", codeA); err != nil {
-		t.Fatalf("register alice: %v", err)
-	}
+	require.NoError(t, err, "generate invite alice: %v", err)
+	err = auth.Register(ctx, "alice", "pw", codeA)
+	require.NoError(t, err, "register alice: %v", err)
 
 	codeB, err := invites.GenerateInvite(ctx, false)
-	if err != nil {
-		t.Fatalf("generate invite bob: %v", err)
-	}
-	if err := auth.Register(ctx, "bob", "pw", codeB); err != nil {
-		t.Fatalf("register bob: %v", err)
-	}
+	require.NoError(t, err, "generate invite bob: %v", err)
+	err = auth.Register(ctx, "bob", "pw", codeB)
+	require.NoError(t, err, "register bob: %v", err)
 
 	groupID, err = groups.CreateGroup(ctx, "alice", "Trip", "EUR", []string{"bob"})
-	if err != nil {
-		t.Fatalf("create group: %v", err)
-	}
+	require.NoError(t, err, "create group: %v", err)
 	return groupID
 }
 
@@ -57,12 +50,8 @@ func TestAddExpense(t *testing.T) {
 		"alice": 50.0,
 		"bob":   50.0,
 	})
-	if err != nil {
-		t.Fatalf("add expense: %v", err)
-	}
-	if eventID == "" {
-		t.Fatal("expected non-empty event ID")
-	}
+	require.NoError(t, err, "add expense: %v", err)
+	require.NotEmpty(t, eventID, "expected non-empty event ID")
 }
 
 func TestAddExpense_InvalidSplits(t *testing.T) {
@@ -75,9 +64,7 @@ func TestAddExpense_InvalidSplits(t *testing.T) {
 		"alice": 40.0,
 		"bob":   40.0,
 	})
-	if err == nil {
-		t.Fatal("expected error for invalid splits")
-	}
+	require.Error(t, err, "expected error for invalid splits")
 }
 
 func TestAddExpense_UnknownMemberInSplits(t *testing.T) {
@@ -89,9 +76,7 @@ func TestAddExpense_UnknownMemberInSplits(t *testing.T) {
 		"alice":  50.0,
 		"nobody": 50.0,
 	})
-	if err == nil {
-		t.Fatal("expected error for unknown split member")
-	}
+	require.Error(t, err, "expected error for unknown split member")
 }
 
 func TestCancelExpense(t *testing.T) {
@@ -103,13 +88,10 @@ func TestCancelExpense(t *testing.T) {
 		"alice": 50.0,
 		"bob":   50.0,
 	})
-	if err != nil {
-		t.Fatalf("add expense: %v", err)
-	}
+	require.NoError(t, err, "add expense: %v", err)
 
-	if err := expenses.CancelExpense(ctx, groupID, "alice", eventID); err != nil {
-		t.Fatalf("cancel expense: %v", err)
-	}
+	err = expenses.CancelExpense(ctx, groupID, "alice", eventID)
+	require.NoError(t, err, "cancel expense: %v", err)
 }
 
 func TestCancelExpense_AlreadyCancelled(t *testing.T) {
@@ -124,9 +106,7 @@ func TestCancelExpense_AlreadyCancelled(t *testing.T) {
 	_ = expenses.CancelExpense(ctx, groupID, "alice", eventID)
 
 	err := expenses.CancelExpense(ctx, groupID, "alice", eventID)
-	if err == nil {
-		t.Fatal("expected error cancelling already-cancelled expense")
-	}
+	require.Error(t, err, "expected error cancelling already-cancelled expense")
 }
 
 func TestCancelExpense_NotFound(t *testing.T) {
@@ -135,9 +115,7 @@ func TestCancelExpense_NotFound(t *testing.T) {
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
 	err := expenses.CancelExpense(ctx, groupID, "alice", "nonexistent-id")
-	if !errors.Is(err, service.ErrEventNotFound) {
-		t.Fatalf("expected ErrEventNotFound, got %v", err)
-	}
+	require.ErrorIs(t, err, service.ErrEventNotFound)
 }
 
 func TestListEvents_NewestFirst(t *testing.T) {
@@ -155,19 +133,11 @@ func TestListEvents_NewestFirst(t *testing.T) {
 	})
 
 	events, total, err := expenses.ListEvents(ctx, groupID, 10, 0)
-	if err != nil {
-		t.Fatalf("list events: %v", err)
-	}
-	if total != 2 {
-		t.Fatalf("expected total=2, got %d", total)
-	}
+	require.NoError(t, err, "list events: %v", err)
+	require.Equal(t, 2, total, "expected total=2, got %d", total)
 	// newest-first: second expense should come before first
-	if events[0].ID != id2 {
-		t.Errorf("expected first result to be %s (second expense), got %s", id2, events[0].ID)
-	}
-	if events[1].ID != id1 {
-		t.Errorf("expected second result to be %s (first expense), got %s", id1, events[1].ID)
-	}
+	assert.Equal(t, id2, events[0].ID, "expected first result to be %s (second expense), got %s", id2, events[0].ID)
+	assert.Equal(t, id1, events[1].ID, "expected second result to be %s (first expense), got %s", id1, events[1].ID)
 }
 
 func TestListEvents_Pagination(t *testing.T) {
@@ -180,39 +150,21 @@ func TestListEvents_Pagination(t *testing.T) {
 			"alice": 10.0,
 			"bob":   10.0,
 		})
-		if err != nil {
-			t.Fatalf("add expense %d: %v", i, err)
-		}
+		require.NoError(t, err, "add expense %d: %v", i, err)
 	}
 
 	page1, total, err := expenses.ListEvents(ctx, groupID, 2, 0)
-	if err != nil {
-		t.Fatalf("list page 1: %v", err)
-	}
-	if total != 5 {
-		t.Fatalf("expected total=5, got %d", total)
-	}
-	if len(page1) != 2 {
-		t.Fatalf("expected 2 events on page 1, got %d", len(page1))
-	}
+	require.NoError(t, err, "list page 1: %v", err)
+	require.Equal(t, 5, total, "expected total=5, got %d", total)
+	require.Len(t, page1, 2, "expected 2 events on page 1, got %d", len(page1))
 
 	page3, _, err := expenses.ListEvents(ctx, groupID, 2, 4)
-	if err != nil {
-		t.Fatalf("list page 3: %v", err)
-	}
-	if len(page3) != 1 {
-		t.Fatalf("expected 1 event on last page, got %d", len(page3))
-	}
+	require.NoError(t, err, "list page 3: %v", err)
+	require.Len(t, page3, 1, "expected 1 event on last page, got %d", len(page3))
 
 	// offset beyond end returns empty slice
 	empty, total2, err := expenses.ListEvents(ctx, groupID, 2, 10)
-	if err != nil {
-		t.Fatalf("list beyond end: %v", err)
-	}
-	if total2 != 5 {
-		t.Fatalf("expected total=5, got %d", total2)
-	}
-	if len(empty) != 0 {
-		t.Fatalf("expected empty slice, got %d events", len(empty))
-	}
+	require.NoError(t, err, "list beyond end: %v", err)
+	require.Equal(t, 5, total2, "expected total=5, got %d", total2)
+	require.Empty(t, empty, "expected empty slice, got %d events", len(empty))
 }

@@ -1,7 +1,6 @@
 package store_test
 
 import (
-	"bytes"
 	"context"
 	"testing"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	localstore "github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/fergalhk-lab/apps/billsplit/internal/testutil"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestStore(t *testing.T) localstore.Store {
@@ -33,15 +33,12 @@ func newTestStore(t *testing.T) localstore.Store {
 			},
 		)),
 	)
-	if err != nil {
-		t.Fatalf("aws config: %v", err)
-	}
+	require.NoError(t, err, "aws config: %v", err)
 
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
 	bucket := "test-bucket"
-	if _, err := client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String(bucket)}); err != nil {
-		t.Fatalf("create bucket: %v", err)
-	}
+	_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String(bucket)})
+	require.NoError(t, err, "create bucket: %v", err)
 
 	return localstore.NewS3Store(client, bucket)
 }
@@ -49,9 +46,7 @@ func newTestStore(t *testing.T) localstore.Store {
 func TestReadObject_NotFound(t *testing.T) {
 	s := newTestStore(t)
 	_, _, err := s.ReadObject(context.Background(), "missing.json")
-	if err != localstore.ErrNotFound {
-		t.Fatalf("expected ErrNotFound, got %v", err)
-	}
+	require.ErrorIs(t, err, localstore.ErrNotFound)
 }
 
 func TestWriteAndRead(t *testing.T) {
@@ -59,56 +54,43 @@ func TestWriteAndRead(t *testing.T) {
 	ctx := context.Background()
 	data := []byte(`{"hello":"world"}`)
 
-	if err := s.WriteObject(ctx, "test.json", data, ""); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	err := s.WriteObject(ctx, "test.json", data, "")
+	require.NoError(t, err, "write: %v", err)
 
 	got, etag, err := s.ReadObject(ctx, "test.json")
-	if err != nil {
-		t.Fatalf("read: %v", err)
-	}
-	if !bytes.Equal(got, data) {
-		t.Fatalf("got %s, want %s", got, data)
-	}
-	if etag == "" {
-		t.Fatal("expected non-empty etag")
-	}
+	require.NoError(t, err, "read: %v", err)
+	require.Equal(t, data, got)
+	require.NotEmpty(t, etag, "expected non-empty etag")
 }
 
 func TestConditionalUpdate(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	if err := s.WriteObject(ctx, "obj.json", []byte(`{"v":1}`), ""); err != nil {
-		t.Fatalf("initial write: %v", err)
-	}
+	err := s.WriteObject(ctx, "obj.json", []byte(`{"v":1}`), "")
+	require.NoError(t, err, "initial write: %v", err)
 	_, etag, _ := s.ReadObject(ctx, "obj.json")
 
-	if err := s.WriteObject(ctx, "obj.json", []byte(`{"v":2}`), etag); err != nil {
-		t.Fatalf("conditional update: %v", err)
-	}
+	err = s.WriteObject(ctx, "obj.json", []byte(`{"v":2}`), etag)
+	require.NoError(t, err, "conditional update: %v", err)
 }
 
 func TestConflictOnStaleETag(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	if err := s.WriteObject(ctx, "obj.json", []byte(`{"v":1}`), ""); err != nil {
-		t.Fatalf("write: %v", err)
-	}
+	err := s.WriteObject(ctx, "obj.json", []byte(`{"v":1}`), "")
+	require.NoError(t, err, "write: %v", err)
 	_, staleETag, _ := s.ReadObject(ctx, "obj.json")
 
 	// overwrite to advance the ETag
 	_, curETag, _ := s.ReadObject(ctx, "obj.json")
-	if err := s.WriteObject(ctx, "obj.json", []byte(`{"v":2}`), curETag); err != nil {
-		t.Fatalf("second write: %v", err)
-	}
+	err = s.WriteObject(ctx, "obj.json", []byte(`{"v":2}`), curETag)
+	require.NoError(t, err, "second write: %v", err)
 
 	// staleETag no longer matches
-	err := s.WriteObject(ctx, "obj.json", []byte(`{"v":3}`), staleETag)
-	if err != localstore.ErrConflict {
-		t.Fatalf("expected ErrConflict, got %v", err)
-	}
+	err = s.WriteObject(ctx, "obj.json", []byte(`{"v":3}`), staleETag)
+	require.ErrorIs(t, err, localstore.ErrConflict)
 }
 
 func TestForceWriteObject(t *testing.T) {
@@ -116,34 +98,25 @@ func TestForceWriteObject(t *testing.T) {
 	ctx := context.Background()
 
 	// Works when object does not exist.
-	if err := s.ForceWriteObject(ctx, "obj.json", []byte(`{"v":1}`)); err != nil {
-		t.Fatalf("force write (create): %v", err)
-	}
+	err := s.ForceWriteObject(ctx, "obj.json", []byte(`{"v":1}`))
+	require.NoError(t, err, "force write (create): %v", err)
 
 	// Works when object already exists — overwrites without conflict.
-	if err := s.ForceWriteObject(ctx, "obj.json", []byte(`{"v":2}`)); err != nil {
-		t.Fatalf("force write (overwrite): %v", err)
-	}
+	err = s.ForceWriteObject(ctx, "obj.json", []byte(`{"v":2}`))
+	require.NoError(t, err, "force write (overwrite): %v", err)
 
 	got, _, err := s.ReadObject(ctx, "obj.json")
-	if err != nil {
-		t.Fatalf("read after force write: %v", err)
-	}
-	if string(got) != `{"v":2}` {
-		t.Fatalf("got %s, want {\"v\":2}", got)
-	}
+	require.NoError(t, err, "read after force write: %v", err)
+	require.Equal(t, `{"v":2}`, string(got))
 }
 
 func TestCreateIfNotExists_FailsIfExists(t *testing.T) {
 	s := newTestStore(t)
 	ctx := context.Background()
 
-	if err := s.WriteObject(ctx, "obj.json", []byte(`{"v":1}`), ""); err != nil {
-		t.Fatalf("first write: %v", err)
-	}
+	err := s.WriteObject(ctx, "obj.json", []byte(`{"v":1}`), "")
+	require.NoError(t, err, "first write: %v", err)
 
-	err := s.WriteObject(ctx, "obj.json", []byte(`{"v":2}`), "")
-	if err != localstore.ErrConflict {
-		t.Fatalf("expected ErrConflict, got %v", err)
-	}
+	err = s.WriteObject(ctx, "obj.json", []byte(`{"v":2}`), "")
+	require.ErrorIs(t, err, localstore.ErrConflict)
 }

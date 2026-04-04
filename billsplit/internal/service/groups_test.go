@@ -3,10 +3,11 @@ package service_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupGroupTest(t *testing.T) (*service.AuthService, *service.InviteService, *service.GroupService) {
@@ -26,12 +27,8 @@ func TestCreateGroup(t *testing.T) {
 	_ = auth.Register(ctx, "alice", "pw", code)
 
 	id, err := groups.CreateGroup(ctx, "alice", "Barcelona", "EUR", []string{})
-	if err != nil {
-		t.Fatalf("create group: %v", err)
-	}
-	if id == "" {
-		t.Fatal("expected non-empty group ID")
-	}
+	require.NoError(t, err, "create group: %v", err)
+	require.NotEmpty(t, id, "expected non-empty group ID")
 }
 
 func TestCreateGroup_UnknownMember(t *testing.T) {
@@ -42,9 +39,7 @@ func TestCreateGroup_UnknownMember(t *testing.T) {
 	_ = auth.Register(ctx, "alice", "pw", code)
 
 	_, err := groups.CreateGroup(ctx, "alice", "Trip", "EUR", []string{"bob"})
-	if err == nil {
-		t.Fatal("expected error for unknown member")
-	}
+	require.Error(t, err, "expected error for unknown member")
 }
 
 func TestCreateGroup_DuplicateInMembers(t *testing.T) {
@@ -55,9 +50,7 @@ func TestCreateGroup_DuplicateInMembers(t *testing.T) {
 	_ = auth.Register(ctx, "alice", "pw", code)
 
 	_, err := groups.CreateGroup(ctx, "alice", "Trip", "EUR", []string{"bob", "bob"})
-	if !errors.Is(err, service.ErrDuplicateMembers) {
-		t.Fatalf("expected ErrDuplicateMembers, got %v", err)
-	}
+	require.ErrorIs(t, err, service.ErrDuplicateMembers)
 }
 
 func TestCreateGroup_CreatorListedInMembers(t *testing.T) {
@@ -68,9 +61,7 @@ func TestCreateGroup_CreatorListedInMembers(t *testing.T) {
 	_ = auth.Register(ctx, "alice", "pw", code)
 
 	_, err := groups.CreateGroup(ctx, "alice", "Trip", "EUR", []string{"alice"})
-	if !errors.Is(err, service.ErrDuplicateMembers) {
-		t.Fatalf("expected ErrDuplicateMembers, got %v", err)
-	}
+	require.ErrorIs(t, err, service.ErrDuplicateMembers)
 }
 
 func TestListGroups(t *testing.T) {
@@ -82,12 +73,9 @@ func TestListGroups(t *testing.T) {
 
 	id, _ := groups.CreateGroup(ctx, "alice", "Barcelona", "EUR", []string{})
 	list, err := groups.ListGroups(ctx, "alice")
-	if err != nil {
-		t.Fatalf("list: %v", err)
-	}
-	if len(list) != 1 || list[0].ID != id {
-		t.Errorf("expected 1 group with id %s, got %v", id, list)
-	}
+	require.NoError(t, err, "list: %v", err)
+	require.Len(t, list, 1)
+	assert.Equal(t, id, list[0].ID, "expected 1 group with id %s, got %v", id, list)
 }
 
 func TestGetGroup(t *testing.T) {
@@ -99,13 +87,8 @@ func TestGetGroup(t *testing.T) {
 
 	id, _ := groups.CreateGroup(ctx, "alice", "Barcelona", "EUR", []string{})
 	detail, err := groups.GetGroup(ctx, id)
-	if err != nil {
-		t.Fatalf("get: %v", err)
-	}
-	if detail.Name != "Barcelona" {
-		t.Errorf("want Barcelona, got %s", detail.Name)
-	}
-	if len(detail.Members) != 1 || detail.Members[0] != "alice" {
-		t.Errorf("unexpected members: %v", detail.Members)
-	}
+	require.NoError(t, err, "get: %v", err)
+	assert.Equal(t, "Barcelona", detail.Name)
+	require.Len(t, detail.Members, 1)
+	assert.Equal(t, "alice", detail.Members[0], "unexpected members: %v", detail.Members)
 }

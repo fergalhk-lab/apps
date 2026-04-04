@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupSettlementTest(t *testing.T) (*service.AuthService, *service.InviteService, *service.GroupService, *service.SettlementService) {
@@ -24,9 +26,7 @@ func TestAddSettlement(t *testing.T) {
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
 	err := settlements.AddSettlement(ctx, groupID, "bob", "bob", "alice", 50.0)
-	if err != nil {
-		t.Fatalf("add settlement: %v", err)
-	}
+	require.NoError(t, err, "add settlement: %v", err)
 }
 
 func TestAddSettlement_GroupNotFound(t *testing.T) {
@@ -34,9 +34,7 @@ func TestAddSettlement_GroupNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	err := settlements.AddSettlement(ctx, "nonexistent-group", "bob", "bob", "alice", 50.0)
-	if err == nil {
-		t.Fatal("expected error for nonexistent group")
-	}
+	require.Error(t, err, "expected error for nonexistent group")
 }
 
 func TestAddSettlement_AppearsInListEvents(t *testing.T) {
@@ -50,21 +48,13 @@ func TestAddSettlement_AppearsInListEvents(t *testing.T) {
 
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	if err := settlements.AddSettlement(ctx, groupID, "bob", "bob", "alice", 50.0); err != nil {
-		t.Fatalf("add settlement: %v", err)
-	}
+	err := settlements.AddSettlement(ctx, groupID, "bob", "bob", "alice", 50.0)
+	require.NoError(t, err, "add settlement: %v", err)
 
 	events, total, err := expenses.ListEvents(ctx, groupID, 10, 0)
-	if err != nil {
-		t.Fatalf("list events: %v", err)
-	}
-	if total != 1 {
-		t.Fatalf("expected total=1, got %d", total)
-	}
-	if len(events) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(events))
-	}
-	if events[0].From != "bob" || events[0].To != "alice" {
-		t.Errorf("unexpected settlement event: %+v", events[0])
-	}
+	require.NoError(t, err, "list events: %v", err)
+	require.Equal(t, 1, total, "expected total=1, got %d", total)
+	require.Len(t, events, 1, "expected 1 event, got %d", len(events))
+	assert.Equal(t, "bob", events[0].From, "unexpected settlement event: %+v", events[0])
+	assert.Equal(t, "alice", events[0].To, "unexpected settlement event: %+v", events[0])
 }
