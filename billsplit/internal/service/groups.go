@@ -23,11 +23,12 @@ type GroupSummary struct {
 }
 
 type GroupDetail struct {
-	ID       string             `json:"id"`
-	Name     string             `json:"name"`
-	Members  []string           `json:"members"`
-	Currency string             `json:"currency"`
-	Balances map[string]float64 `json:"balances"`
+	ID          string              `json:"id"`
+	Name        string              `json:"name"`
+	Members     []string            `json:"members"`
+	Currency    string              `json:"currency"`
+	Balances    map[string]float64  `json:"balances"`
+	Settlements []domain.Settlement `json:"settlements"`
 }
 
 type GroupService struct {
@@ -138,12 +139,14 @@ func (gs *GroupService) GetGroup(ctx context.Context, groupID string) (*GroupDet
 	if err != nil {
 		return nil, err
 	}
+	balances := domain.ComputeBalances(g)
 	return &GroupDetail{
-		ID:       groupID,
-		Name:     g.Name,
-		Members:  g.Members,
-		Currency: g.Currency,
-		Balances: domain.ComputeBalances(g),
+		ID:          groupID,
+		Name:        g.Name,
+		Members:     g.Members,
+		Currency:    g.Currency,
+		Balances:    balances,
+		Settlements: domain.ComputeSettlements(balances),
 	}, nil
 }
 
