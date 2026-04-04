@@ -38,6 +38,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T
 }
 
+export type Settlement = {
+  from: string
+  to: string
+  amount: number
+}
+
 export type Group = {
   id: string
   name: string
@@ -45,6 +51,7 @@ export type Group = {
   balances: Record<string, number>
   members: string[]
   netBalance: number
+  settlements?: Settlement[]
 }
 
 export type EventType = 'expense' | 'settlement' | 'reversal'
