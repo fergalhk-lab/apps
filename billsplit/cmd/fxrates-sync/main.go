@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -76,16 +75,7 @@ func main() {
 		log.Fatalf("marshal rates: %v", err)
 	}
 
-	// Read current ETag for a conditional write. The store's WriteObject with
-	// ifMatchETag="" uses IfNoneMatch:* (create-if-not-exists), so we need the
-	// current ETag to overwrite an existing object. Since this is the only writer,
-	// ErrConflict cannot occur between read and write.
-	_, etag, err := st.ReadObject(ctx, fxrates.S3Key)
-	if err != nil && !errors.Is(err, localstore.ErrNotFound) {
-		log.Fatalf("read existing rates: %v", err)
-	}
-
-	if err := st.WriteObject(ctx, fxrates.S3Key, data, etag); err != nil {
+	if err := st.ForceWriteObject(ctx, fxrates.S3Key, data); err != nil {
 		log.Fatalf("write rates: %v", err)
 	}
 
