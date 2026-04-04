@@ -1,0 +1,73 @@
+// billsplit/internal/handler/middleware.go
+package handler
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"strings"
+
+	"github.com/fergalhk-lab/apps/billsplit/internal/service"
+)
+
+type contextKey string
+
+const (
+	ctxUsername contextKey = "username"
+	ctxIsAdmin  contextKey = "isAdmin"
+)
+
+func UsernameFromCtx(r *http.Request) string {
+	v, _ := r.Context().Value(ctxUsername).(string)
+	return v
+}
+
+func IsAdminFromCtx(r *http.Request) bool {
+	v, _ := r.Context().Value(ctxIsAdmin).(bool)
+	return v
+}
+
+func RequireAuth(auth *service.AuthService, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		header := r.Header.Get("Authorization")
+		token, ok := strings.CutPrefix(header, "Bearer ")
+		if !ok || token == "" {
+			writeError(w, http.StatusUnauthorized, "missing or invalid Authorization header")
+			return
+		}
+		claims, err := auth.VerifyToken(token)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "invalid token")
+			return
+		}
+		ctx := context.WithValue(r.Context(), ctxUsername, claims.Username)
+		ctx = context.WithValue(ctx, ctxIsAdmin, claims.IsAdmin)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func RequireAdmin(auth *service.AuthService, next http.Handler) http.Handler {
+	return RequireAuth(auth, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !IsAdminFromCtx(r) {
+			writeError(w, http.StatusForbidden, "admin access required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	}))
+}
+
+func writeError(w http.ResponseWriter, status int, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
+func writeJSON(w http.ResponseWriter, status int, v interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(v)
+}
+
+func decodeJSON(r *http.Request, v interface{}) error {
+	return json.NewDecoder(r.Body).Decode(v)
+}
