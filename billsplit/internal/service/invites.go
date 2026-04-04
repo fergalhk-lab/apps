@@ -4,6 +4,8 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
@@ -34,4 +36,19 @@ func (is *InviteService) GenerateInvite(ctx context.Context, isAdmin bool) (stri
 		return "", err
 	}
 	return code, nil
+}
+
+func (is *InviteService) HasInvites(ctx context.Context) (bool, error) {
+	data, _, err := is.store.ReadObject(ctx, usersKey)
+	if errors.Is(err, store.ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	var ud domain.UsersData
+	if err := json.Unmarshal(data, &ud); err != nil {
+		return false, fmt.Errorf("corrupt users data: %w", err)
+	}
+	return len(ud.Invites) > 0, nil
 }
