@@ -21,6 +21,7 @@ jobs:
         run: echo "matrix=$(go run ./util/ci/matrix-generator)" >> "$GITHUB_OUTPUT"
 
   build-test:
+    name: ${{ matrix.name }}
     needs: generate-matrix
     runs-on: ubuntu-latest
     strategy:
