@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestComputeBalances_SimpleExpense(t *testing.T) {
@@ -17,12 +18,8 @@ func TestComputeBalances_SimpleExpense(t *testing.T) {
 		},
 	}
 	b := domain.ComputeBalances(g)
-	if b["alice"] != 50 {
-		t.Errorf("alice: want 50, got %v", b["alice"])
-	}
-	if b["bob"] != -50 {
-		t.Errorf("bob: want -50, got %v", b["bob"])
-	}
+	assert.Equal(t, 50.0, b["alice"], "alice: want 50, got %v", b["alice"])
+	assert.Equal(t, -50.0, b["bob"], "bob: want -50, got %v", b["bob"])
 }
 
 func TestComputeBalances_UnequalSplits(t *testing.T) {
@@ -34,15 +31,9 @@ func TestComputeBalances_UnequalSplits(t *testing.T) {
 		},
 	}
 	b := domain.ComputeBalances(g)
-	if b["alice"] != 50 {
-		t.Errorf("alice: want 50, got %v", b["alice"])
-	}
-	if b["bob"] != -25 {
-		t.Errorf("bob: want -25, got %v", b["bob"])
-	}
-	if b["carol"] != -25 {
-		t.Errorf("carol: want -25, got %v", b["carol"])
-	}
+	assert.Equal(t, 50.0, b["alice"], "alice: want 50, got %v", b["alice"])
+	assert.Equal(t, -25.0, b["bob"], "bob: want -25, got %v", b["bob"])
+	assert.Equal(t, -25.0, b["carol"], "carol: want -25, got %v", b["carol"])
 }
 
 func TestComputeBalances_Settlement(t *testing.T) {
@@ -55,12 +46,8 @@ func TestComputeBalances_Settlement(t *testing.T) {
 		},
 	}
 	b := domain.ComputeBalances(g)
-	if b["alice"] != 0 {
-		t.Errorf("alice: want 0, got %v", b["alice"])
-	}
-	if b["bob"] != 0 {
-		t.Errorf("bob: want 0, got %v", b["bob"])
-	}
+	assert.Equal(t, 0.0, b["alice"], "alice: want 0, got %v", b["alice"])
+	assert.Equal(t, 0.0, b["bob"], "bob: want 0, got %v", b["bob"])
 }
 
 func TestComputeBalances_Reversal(t *testing.T) {
@@ -73,20 +60,15 @@ func TestComputeBalances_Reversal(t *testing.T) {
 		},
 	}
 	b := domain.ComputeBalances(g)
-	if b["alice"] != 0 {
-		t.Errorf("alice: want 0, got %v", b["alice"])
-	}
-	if b["bob"] != 0 {
-		t.Errorf("bob: want 0, got %v", b["bob"])
-	}
+	assert.Equal(t, 0.0, b["alice"], "alice: want 0, got %v", b["alice"])
+	assert.Equal(t, 0.0, b["bob"], "bob: want 0, got %v", b["bob"])
 }
 
 func TestComputeBalances_EmptyGroup(t *testing.T) {
 	g := domain.Group{Members: []string{"alice", "bob"}, Events: nil}
 	b := domain.ComputeBalances(g)
-	if b["alice"] != 0 || b["bob"] != 0 {
-		t.Errorf("expected zero balances for empty group, got %v", b)
-	}
+	assert.Equal(t, 0.0, b["alice"], "expected zero balances for empty group, got %v", b)
+	assert.Equal(t, 0.0, b["bob"], "expected zero balances for empty group, got %v", b)
 }
 
 // --- ComputeSettlements tests ---
