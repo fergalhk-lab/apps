@@ -9,7 +9,7 @@ services:
   - name: billsplit
     image: &image
       repository: 740994137039.dkr.ecr.eu-west-1.amazonaws.com/apps/billsplit
-      tag: 7b8a0bf8d721596fdce952020eb8467f337bb97d
+      tag: 9b5fc54412bcbaa8f4636c5578f2998dcadeb3a2
     resources:
       cpu: "20m"
       memory: "64Mi"
