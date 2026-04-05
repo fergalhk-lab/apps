@@ -9,47 +9,19 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/fergalhk-lab/apps/billsplit/internal/handler"
+	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
-	localstore "github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/fergalhk-lab/apps/billsplit/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestStore(t *testing.T) localstore.Store {
-	t.Helper()
-	minio := testutil.StartMinIO(t)
-	ctx := context.Background()
-	cfg, err := awsconfig.LoadDefaultConfig(ctx,
-		awsconfig.WithRegion("us-east-1"),
-		awsconfig.WithCredentialsProvider(aws.CredentialsProviderFunc(
-			func(ctx context.Context) (aws.Credentials, error) {
-				return aws.Credentials{AccessKeyID: minio.AccessKey, SecretAccessKey: minio.SecretKey}, nil
-			},
-		)),
-		awsconfig.WithEndpointResolverWithOptions(aws.EndpointResolverWithOptionsFunc(
-			func(svc, region string, _ ...interface{}) (aws.Endpoint, error) {
-				return aws.Endpoint{URL: minio.Endpoint, HostnameImmutable: true}, nil
-			},
-		)),
-	)
-	require.NoError(t, err)
-	client := s3.NewFromConfig(cfg, func(o *s3.Options) { o.UsePathStyle = true })
-	bucket := "test-bucket"
-	_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{Bucket: aws.String(bucket)})
-	require.NoError(t, err)
-	return localstore.NewS3Store(client, bucket)
-}
-
 // newTestRouter registers alice and returns a router with secureCookie=false
 // (httptest doesn't use HTTPS).
 func newTestRouter(t *testing.T) http.Handler {
 	t.Helper()
-	st := newTestStore(t)
+	st := testutil.NewTestStore(t)
 	auth := service.NewAuthService(st, "test-secret")
 	invites := service.NewInviteService(st)
 	code, err := invites.GenerateInvite(context.Background(), false)
@@ -68,7 +40,7 @@ func newTestRouter(t *testing.T) http.Handler {
 
 func sessionCookie(rr *httptest.ResponseRecorder) *http.Cookie {
 	for _, c := range rr.Result().Cookies() {
-		if c.Name == "session" {
+		if c.Name == middleware.SessionCookieName {
 			return c
 		}
 	}

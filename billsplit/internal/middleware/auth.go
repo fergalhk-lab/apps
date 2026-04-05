@@ -12,8 +12,9 @@ import (
 type contextKey string
 
 const (
-	ctxUsername contextKey = "username"
-	ctxIsAdmin  contextKey = "isAdmin"
+	ctxUsername       contextKey = "username"
+	ctxIsAdmin        contextKey = "isAdmin"
+	SessionCookieName            = "session"
 )
 
 func UsernameFromCtx(r *http.Request) string {
@@ -28,7 +29,7 @@ func IsAdminFromCtx(r *http.Request) bool {
 
 func RequireAuth(auth *service.AuthService, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("session")
+		cookie, err := r.Cookie(SessionCookieName)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "missing session cookie")
 			return

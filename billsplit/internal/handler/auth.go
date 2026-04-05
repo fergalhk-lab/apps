@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 )
 
@@ -50,7 +51,7 @@ func authLoginHandler(auth *service.AuthService, secureCookie bool) http.Handler
 			return
 		}
 		http.SetCookie(w, &http.Cookie{
-			Name:     "session",
+			Name:     middleware.SessionCookieName,
 			Value:    token,
 			HttpOnly: true,
 			SameSite: http.SameSiteStrictMode,
@@ -68,7 +69,7 @@ func authLoginHandler(auth *service.AuthService, secureCookie bool) http.Handler
 func authLogoutHandler(secureCookie bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
-			Name:     "session",
+			Name:     middleware.SessionCookieName,
 			Value:    "",
 			HttpOnly: true,
 			SameSite: http.SameSiteStrictMode,
