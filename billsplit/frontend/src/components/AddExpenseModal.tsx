@@ -126,13 +126,13 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    if (percentageMismatch) {
+      setError(`Percentages sum to ${percentageSum.toFixed(2)}% but must equal 100%`)
+      return
+    }
     if (!splits) { setError('Invalid split configuration'); return }
     if (splitsMismatch) {
       setError(`Splits sum to ${splitsTotal.toFixed(2)} but total is ${total.toFixed(2)}`)
-      return
-    }
-    if (percentageMismatch) {
-      setError(`Percentages sum to ${percentageSum.toFixed(2)}% but must equal 100%`)
       return
     }
     try {
@@ -242,9 +242,11 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
                   </div>
                 </div>
               ))}
-              <p className={`text-xs ${percentageMismatch ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
-                Total: {percentageSum.toFixed(2)}% of 100%
-              </p>
+              {amount && (
+                <p className={`text-xs ${percentageMismatch ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
+                  Total: {percentageSum.toFixed(2)}% of 100%
+                </p>
+              )}
             </div>
           )}
 
