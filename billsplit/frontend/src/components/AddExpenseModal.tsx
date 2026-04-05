@@ -1,5 +1,5 @@
 // frontend/src/components/AddExpenseModal.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { api, type Group } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -57,6 +57,8 @@ interface Props {
 export default function AddExpenseModal({ group, currentUsername, onClose, onSaved }: Props) {
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState(group.currency)
+  const [currencies, setCurrencies] = useState<string[]>([])
   const [paidBy, setPaidBy] = useState(
     group.members.includes(currentUsername) ? currentUsername : (group.members[0] ?? '')
   )
@@ -68,6 +70,12 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
     () => Object.fromEntries(group.members.map(m => [m, '0']))
   )
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    api.getCurrencies()
+      .then(res => setCurrencies(Object.keys(res.rates).sort()))
+      .catch(() => {/* silently fall back to group currency only */})
+  }, [])
 
   const total = parseFloat(amount)
   const splits = computeSplits(splitMode, total, group.members, ratios, fixed)
@@ -83,7 +91,7 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
       return
     }
     try {
-      await api.addExpense(group.id, { description, amount: total, paidBy, splits })
+      await api.addExpense(group.id, { description, amount: total, paidBy, splits, currency })
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add expense')
@@ -107,16 +115,28 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
             />
           </div>
           <div className="space-y-2">
-            <Label>Amount ({group.currency})</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="0.00"
-              value={amount}
-              onChange={e => setAmount(e.target.value)}
-              required
-            />
+            <Label>Amount</Label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                step="0.01"
+                min="0.01"
+                placeholder="0.00"
+                value={amount}
+                onChange={e => setAmount(e.target.value)}
+                required
+              />
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger className="w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(currencies.length > 0 ? currencies : [group.currency]).map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-2">
             <Label>Paid by</Label>

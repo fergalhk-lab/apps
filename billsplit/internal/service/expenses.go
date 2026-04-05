@@ -23,7 +23,22 @@ func NewExpenseService(s store.Store) *ExpenseService {
 	return &ExpenseService{store: s}
 }
 
-func (es *ExpenseService) AddExpense(ctx context.Context, groupID, createdBy, description, paidBy string, amount float64, splits map[string]float64) (string, error) {
+// GetGroupCurrency returns the base currency for the given group.
+func (es *ExpenseService) GetGroupCurrency(ctx context.Context, groupID string) (string, error) {
+	data, _, err := es.store.ReadObject(ctx, groupKey(groupID))
+	if err != nil {
+		return "", err
+	}
+	var g domain.Group
+	if err := json.Unmarshal(data, &g); err != nil {
+		return "", err
+	}
+	return g.Currency, nil
+}
+
+// AddExpense appends a new expense event to the group. originalExpense is
+// non-nil only when the input currency differs from the group's base currency.
+func (es *ExpenseService) AddExpense(ctx context.Context, groupID, createdBy, description, paidBy string, amount float64, splits map[string]float64, originalExpense *domain.OriginalExpense) (string, error) {
 	eventID := uuid.New().String()
 	return eventID, withRetry(ctx, es.store, groupKey(groupID), func(data []byte) ([]byte, error) {
 		if data == nil {
@@ -44,14 +59,15 @@ func (es *ExpenseService) AddExpense(ctx context.Context, groupID, createdBy, de
 			return nil, err
 		}
 		g.Events = append(g.Events, domain.Event{
-			ID:          eventID,
-			Type:        domain.EventTypeExpense,
-			CreatedAt:   time.Now().UTC(),
-			CreatedBy:   createdBy,
-			Description: description,
-			Amount:      amount,
-			PaidBy:      paidBy,
-			Splits:      splits,
+			ID:              eventID,
+			Type:            domain.EventTypeExpense,
+			CreatedAt:       time.Now().UTC(),
+			CreatedBy:       createdBy,
+			Description:     description,
+			Amount:          amount,
+			PaidBy:          paidBy,
+			Splits:          splits,
+			OriginalExpense: originalExpense,
 		})
 		return json.Marshal(g)
 	})

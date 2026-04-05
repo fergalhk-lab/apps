@@ -116,7 +116,7 @@ func TestGetGroup_IncludesSettlements(t *testing.T) {
 	_, err = expenses.AddExpense(ctx, gid, "alice", "Dinner", "alice", 100.0, map[string]float64{
 		"alice": 50.0,
 		"bob":   50.0,
-	})
+	}, nil)
 	if err != nil {
 		t.Fatalf("add expense: %v", err)
 	}

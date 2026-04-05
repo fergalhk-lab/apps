@@ -6,16 +6,20 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
+	"github.com/fergalhk-lab/apps/billsplit/internal/fxrates"
 	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
+	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 )
 
-func addExpenseHandler(expenses *service.ExpenseService) http.HandlerFunc {
+func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		var req struct {
 			Description string             `json:"description"`
 			Amount      float64            `json:"amount"`
+			Currency    string             `json:"currency"`
 			PaidBy      string             `json:"paidBy"`
 			Splits      map[string]float64 `json:"splits"`
 		}
@@ -23,8 +27,41 @@ func addExpenseHandler(expenses *service.ExpenseService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
+
+		groupCurrency, err := expenses.GetGroupCurrency(r.Context(), groupID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				writeError(w, http.StatusNotFound, "group not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "failed to read group")
+			return
+		}
+
+		inputCurrency := req.Currency
+		if inputCurrency == "" {
+			inputCurrency = groupCurrency
+		}
+
+		amount := req.Amount
+		var originalExpense *domain.OriginalExpense
+		if inputCurrency != groupCurrency {
+			rates, err := fxCache.Get(r.Context())
+			if err != nil {
+				writeError(w, http.StatusServiceUnavailable, "exchange rates unavailable")
+				return
+			}
+			converted, err := rates.Convert(req.Amount, inputCurrency, groupCurrency)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, err.Error())
+				return
+			}
+			originalExpense = &domain.OriginalExpense{Currency: inputCurrency, Amount: req.Amount}
+			amount = converted
+		}
+
 		username := middleware.UsernameFromCtx(r)
-		eventID, err := expenses.AddExpense(r.Context(), groupID, username, req.Description, req.PaidBy, req.Amount, req.Splits)
+		eventID, err := expenses.AddExpense(r.Context(), groupID, username, req.Description, req.PaidBy, amount, req.Splits, originalExpense)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

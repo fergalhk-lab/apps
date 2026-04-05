@@ -4,6 +4,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/fxrates"
 	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 )
@@ -14,6 +15,7 @@ type Services struct {
 	Expenses    *service.ExpenseService
 	Settlements *service.SettlementService
 	Invites     *service.InviteService
+	FXRates     *fxrates.Cache
 }
 
 func NewRouter(svc Services, secureCookie bool) http.Handler {
@@ -32,8 +34,11 @@ func NewRouter(svc Services, secureCookie bool) http.Handler {
 	mux.Handle("GET /api/groups", middleware.RequireAuth(svc.Auth, http.HandlerFunc(listGroupsHandler(svc.Groups))))
 	mux.Handle("GET /api/groups/{id}", middleware.RequireAuth(svc.Auth, http.HandlerFunc(getGroupHandler(svc.Groups))))
 
+	// Currencies
+	mux.Handle("GET /api/currencies", middleware.RequireAuth(svc.Auth, http.HandlerFunc(currenciesHandler(svc.FXRates))))
+
 	// Expenses
-	mux.Handle("POST /api/groups/{id}/expenses", middleware.RequireAuth(svc.Auth, http.HandlerFunc(addExpenseHandler(svc.Expenses))))
+	mux.Handle("POST /api/groups/{id}/expenses", middleware.RequireAuth(svc.Auth, http.HandlerFunc(addExpenseHandler(svc.Expenses, svc.FXRates))))
 	mux.Handle("GET /api/groups/{id}/expenses", middleware.RequireAuth(svc.Auth, http.HandlerFunc(listEventsHandler(svc.Expenses))))
 	mux.Handle("DELETE /api/groups/{id}/expenses/{eventId}", middleware.RequireAuth(svc.Auth, http.HandlerFunc(cancelExpenseHandler(svc.Expenses))))
 
