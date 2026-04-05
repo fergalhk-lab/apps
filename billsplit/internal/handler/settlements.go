@@ -4,6 +4,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 )
 
@@ -19,7 +20,7 @@ func addSettlementHandler(settlements *service.SettlementService) http.HandlerFu
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		username := UsernameFromCtx(r)
+		username := middleware.UsernameFromCtx(r)
 		if err := settlements.AddSettlement(r.Context(), groupID, username, req.From, req.To, req.Amount); err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

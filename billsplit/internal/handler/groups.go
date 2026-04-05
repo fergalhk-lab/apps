@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 )
@@ -20,7 +21,7 @@ func createGroupHandler(groups *service.GroupService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		username := UsernameFromCtx(r)
+		username := middleware.UsernameFromCtx(r)
 		id, err := groups.CreateGroup(r.Context(), username, req.Name, req.Currency, req.Members)
 		if err != nil {
 			if errors.Is(err, service.ErrUnknownMembers) {
@@ -40,7 +41,7 @@ func createGroupHandler(groups *service.GroupService) http.HandlerFunc {
 
 func listGroupsHandler(groups *service.GroupService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		username := UsernameFromCtx(r)
+		username := middleware.UsernameFromCtx(r)
 		list, err := groups.ListGroups(r.Context(), username)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to list groups")
@@ -70,7 +71,7 @@ func leaveGroupHandler(groups *service.GroupService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		username := r.PathValue("username")
-		if username != UsernameFromCtx(r) {
+		if username != middleware.UsernameFromCtx(r) {
 			writeError(w, http.StatusForbidden, "can only remove yourself from a group")
 			return
 		}
@@ -79,7 +80,6 @@ func leaveGroupHandler(groups *service.GroupService) http.HandlerFunc {
 				writeError(w, http.StatusNotFound, "group not found")
 				return
 			}
-			// balance error or other domain error → 409 Conflict
 			writeError(w, http.StatusConflict, err.Error())
 			return
 		}
