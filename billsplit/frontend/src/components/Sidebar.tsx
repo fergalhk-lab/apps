@@ -1,6 +1,6 @@
 // frontend/src/components/Sidebar.tsx
 import { Link } from 'react-router-dom'
-import { Sun, Moon, Monitor, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Sun, Moon, Monitor, Plus, ChevronLeft, ChevronRight, User } from 'lucide-react'
 import { type Group } from '@/api'
 import { useTheme } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/button'
@@ -144,8 +144,8 @@ export default function Sidebar({
 
       <Separator />
 
-      {/* Admin invite panel */}
-      {isAdmin && (
+      {/* Admin invite panel — hidden when collapsed */}
+      {isAdmin && !collapsed && (
         <div className="px-4 py-2">
           <button
             onClick={onToggleInvitePanel}
@@ -189,21 +189,42 @@ export default function Sidebar({
       )}
 
       {/* Bottom: username + theme toggle */}
-      <div className="px-4 py-3 flex items-center justify-between">
-        <button
-          onClick={onLogout}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors truncate"
-        >
-          {username}
-        </button>
-        <button
-          onClick={cycleTheme}
-          className="text-muted-foreground hover:text-foreground transition-colors ml-2 flex-shrink-0"
-          title={`Theme: ${theme}`}
-        >
-          <ThemeIcon className="h-4 w-4" />
-        </button>
-      </div>
+      {collapsed ? (
+        <div className="flex flex-col items-center py-3 gap-3">
+          <button
+            onClick={onLogout}
+            title={username}
+            aria-label={`Log out ${username}`}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <User className="h-4 w-4" />
+          </button>
+          <button
+            onClick={cycleTheme}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title={`Theme: ${theme}`}
+            aria-label={`Switch theme (current: ${theme})`}
+          >
+            <ThemeIcon className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <div className="px-4 py-3 flex items-center justify-between">
+          <button
+            onClick={onLogout}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors truncate"
+          >
+            {username}
+          </button>
+          <button
+            onClick={cycleTheme}
+            className="text-muted-foreground hover:text-foreground transition-colors ml-2 flex-shrink-0"
+            title={`Theme: ${theme}`}
+          >
+            <ThemeIcon className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </aside>
   )
 }
