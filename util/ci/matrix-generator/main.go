@@ -19,10 +19,15 @@ type Config struct {
 	Apps []App `yaml:"apps"`
 }
 
+type Deployment struct {
+	Cluster string `yaml:"cluster"`
+}
+
 type App struct {
-	Name  string `yaml:"name"`
-	Path  string `yaml:"path"`
-	Tests []Test `yaml:"tests"`
+	Name       string     `yaml:"name"`
+	Path       string     `yaml:"path"`
+	Deployment Deployment `yaml:"deployment"`
+	Tests      []Test     `yaml:"tests"`
 }
 
 type Test struct {
@@ -38,6 +43,7 @@ type MatrixEntry struct {
 	Tests      []Test `json:"tests"`
 	ECRRegion  string `json:"ecr_region"`
 	ECRRoleARN string `json:"ecr_role_arn"`
+	Cluster    string `json:"cluster"`
 }
 
 type Matrix struct {
@@ -55,6 +61,7 @@ func buildMatrix(cfg Config) Matrix {
 			Tests:      app.Tests,
 			ECRRegion:  cfg.Common.ECR.Region,
 			ECRRoleARN: cfg.Common.ECR.PushIAMRoleARN,
+			Cluster:    app.Deployment.Cluster,
 		})
 	}
 	return Matrix{Include: entries}
