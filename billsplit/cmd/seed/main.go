@@ -11,6 +11,7 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/dependencies"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	localstore "github.com/fergalhk-lab/apps/billsplit/internal/store"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 	}
 
 	st := localstore.NewS3Store(s3Client, cfg.S3Bucket)
-	invites := service.NewInviteService(st)
+	invites := service.NewInviteService(st, zap.NewNop())
 	ctx := context.Background()
 
 	if *initial {

@@ -11,6 +11,7 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -30,14 +31,15 @@ type Claims struct {
 type AuthService struct {
 	store     store.Store
 	jwtSecret string
+	logger    *zap.Logger
 }
 
-func NewAuthService(s store.Store, jwtSecret string) *AuthService {
-	return &AuthService{store: s, jwtSecret: jwtSecret}
+func NewAuthService(s store.Store, jwtSecret string, logger *zap.Logger) *AuthService {
+	return &AuthService{store: s, jwtSecret: jwtSecret, logger: logger.Named("service.auth")}
 }
 
 func (a *AuthService) Register(ctx context.Context, username, password, inviteCode string) error {
-	return withRetry(ctx, a.store, usersKey, func(data []byte) ([]byte, error) {
+	return withRetry(ctx, a.store, usersKey, a.logger, func(data []byte) ([]byte, error) {
 		ud, err := a.unmarshalOrEmpty(data)
 		if err != nil {
 			return nil, err

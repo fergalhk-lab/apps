@@ -9,12 +9,13 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 func newAuthAndInviteServices(t *testing.T) (*service.AuthService, *service.InviteService) {
 	t.Helper()
 	st := newTestStore(t)
-	return service.NewAuthService(st, "test-secret"), service.NewInviteService(st)
+	return service.NewAuthService(st, "test-secret", zaptest.NewLogger(t)), service.NewInviteService(st, zaptest.NewLogger(t))
 }
 
 // registerUser is a test helper: generates an invite then registers the user.

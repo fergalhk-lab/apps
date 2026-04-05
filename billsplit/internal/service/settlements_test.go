@@ -8,15 +8,16 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 func setupSettlementTest(t *testing.T) (*service.AuthService, *service.InviteService, *service.GroupService, *service.SettlementService) {
 	t.Helper()
 	st := newTestStore(t)
-	auth := service.NewAuthService(st, "secret")
-	invites := service.NewInviteService(st)
-	groups := service.NewGroupService(st)
-	settlements := service.NewSettlementService(st)
+	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	invites := service.NewInviteService(st, zaptest.NewLogger(t))
+	groups := service.NewGroupService(st, zaptest.NewLogger(t))
+	settlements := service.NewSettlementService(st, zaptest.NewLogger(t))
 	return auth, invites, groups, settlements
 }
 
@@ -40,11 +41,11 @@ func TestAddSettlement_GroupNotFound(t *testing.T) {
 func TestAddSettlement_AppearsInListEvents(t *testing.T) {
 	st := newTestStore(t)
 	ctx := context.Background()
-	auth := service.NewAuthService(st, "secret")
-	invites := service.NewInviteService(st)
-	groups := service.NewGroupService(st)
-	settlements := service.NewSettlementService(st)
-	expenses := service.NewExpenseService(st)
+	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	invites := service.NewInviteService(st, zaptest.NewLogger(t))
+	groups := service.NewGroupService(st, zaptest.NewLogger(t))
+	settlements := service.NewSettlementService(st, zaptest.NewLogger(t))
+	expenses := service.NewExpenseService(st, zaptest.NewLogger(t))
 
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 

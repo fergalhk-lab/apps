@@ -11,16 +11,18 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 var ErrEventNotFound = errors.New("event not found")
 
 type ExpenseService struct {
-	store store.Store
+	store  store.Store
+	logger *zap.Logger
 }
 
-func NewExpenseService(s store.Store) *ExpenseService {
-	return &ExpenseService{store: s}
+func NewExpenseService(s store.Store, logger *zap.Logger) *ExpenseService {
+	return &ExpenseService{store: s, logger: logger.Named("service.expenses")}
 }
 
 // GetGroupCurrency returns the base currency for the given group.
@@ -40,7 +42,7 @@ func (es *ExpenseService) GetGroupCurrency(ctx context.Context, groupID string) 
 // non-nil only when the input currency differs from the group's base currency.
 func (es *ExpenseService) AddExpense(ctx context.Context, groupID, createdBy, description, paidBy string, amount float64, splits map[string]float64, originalExpense *domain.OriginalExpense) (string, error) {
 	eventID := uuid.New().String()
-	return eventID, withRetry(ctx, es.store, groupKey(groupID), func(data []byte) ([]byte, error) {
+	return eventID, withRetry(ctx, es.store, groupKey(groupID), es.logger, func(data []byte) ([]byte, error) {
 		if data == nil {
 			return nil, store.ErrNotFound
 		}
@@ -75,7 +77,7 @@ func (es *ExpenseService) AddExpense(ctx context.Context, groupID, createdBy, de
 
 func (es *ExpenseService) CancelExpense(ctx context.Context, groupID, cancelledBy, eventID string) error {
 	reversalID := uuid.New().String()
-	return withRetry(ctx, es.store, groupKey(groupID), func(data []byte) ([]byte, error) {
+	return withRetry(ctx, es.store, groupKey(groupID), es.logger, func(data []byte) ([]byte, error) {
 		if data == nil {
 			return nil, store.ErrNotFound
 		}

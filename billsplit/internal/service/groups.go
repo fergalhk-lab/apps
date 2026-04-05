@@ -10,6 +10,7 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 var ErrUnknownMembers = errors.New("one or more members not found")
@@ -32,11 +33,12 @@ type GroupDetail struct {
 }
 
 type GroupService struct {
-	store store.Store
+	store  store.Store
+	logger *zap.Logger
 }
 
-func NewGroupService(s store.Store) *GroupService {
-	return &GroupService{store: s}
+func NewGroupService(s store.Store, logger *zap.Logger) *GroupService {
+	return &GroupService{store: s, logger: logger.Named("service.groups")}
 }
 
 func (gs *GroupService) CreateGroup(ctx context.Context, creatorUsername, name, currency string, otherMembers []string) (string, error) {
@@ -73,7 +75,7 @@ func (gs *GroupService) CreateGroup(ctx context.Context, creatorUsername, name, 
 	}
 
 	// Add groupID to all members in users.json
-	if err := withRetry(ctx, gs.store, usersKey, func(raw []byte) ([]byte, error) {
+	if err := withRetry(ctx, gs.store, usersKey, gs.logger, func(raw []byte) ([]byte, error) {
 		if raw == nil {
 			return nil, errors.New("users.json not found")
 		}
@@ -121,7 +123,8 @@ func (gs *GroupService) ListGroups(ctx context.Context, username string) ([]Grou
 	for _, id := range groupIDs {
 		g, err := gs.readGroup(ctx, id)
 		if err != nil {
-			continue // skip missing groups
+			gs.logger.Warn("group not found, skipping", zap.String("group_id", id))
+			continue
 		}
 		balances := domain.ComputeBalances(g)
 		summaries = append(summaries, GroupSummary{
@@ -162,7 +165,7 @@ func (gs *GroupService) LeaveGroup(ctx context.Context, groupID, username string
 	}
 
 	// Remove groupID from user's record
-	return withRetry(ctx, gs.store, usersKey, func(raw []byte) ([]byte, error) {
+	return withRetry(ctx, gs.store, usersKey, gs.logger, func(raw []byte) ([]byte, error) {
 		var ud domain.UsersData
 		if err := json.Unmarshal(raw, &ud); err != nil {
 			return nil, err

@@ -8,9 +8,10 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
+	"go.uber.org/zap"
 )
 
-func createGroupHandler(groups *service.GroupService) http.HandlerFunc {
+func createGroupHandler(groups *service.GroupService, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Name     string   `json:"name"`
@@ -32,6 +33,7 @@ func createGroupHandler(groups *service.GroupService) http.HandlerFunc {
 				writeError(w, http.StatusBadRequest, err.Error())
 				return
 			}
+			logger.Error("create group failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to create group")
 			return
 		}
@@ -39,11 +41,12 @@ func createGroupHandler(groups *service.GroupService) http.HandlerFunc {
 	}
 }
 
-func listGroupsHandler(groups *service.GroupService) http.HandlerFunc {
+func listGroupsHandler(groups *service.GroupService, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username := middleware.UsernameFromCtx(r)
 		list, err := groups.ListGroups(r.Context(), username)
 		if err != nil {
+			logger.Error("list groups failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to list groups")
 			return
 		}
@@ -51,7 +54,7 @@ func listGroupsHandler(groups *service.GroupService) http.HandlerFunc {
 	}
 }
 
-func getGroupHandler(groups *service.GroupService) http.HandlerFunc {
+func getGroupHandler(groups *service.GroupService, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		detail, err := groups.GetGroup(r.Context(), groupID)
@@ -60,6 +63,7 @@ func getGroupHandler(groups *service.GroupService) http.HandlerFunc {
 				writeError(w, http.StatusNotFound, "group not found")
 				return
 			}
+			logger.Error("get group failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to get group")
 			return
 		}

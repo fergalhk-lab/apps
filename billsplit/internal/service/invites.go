@@ -10,19 +10,21 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type InviteService struct {
-	store store.Store
+	store  store.Store
+	logger *zap.Logger
 }
 
-func NewInviteService(s store.Store) *InviteService {
-	return &InviteService{store: s}
+func NewInviteService(s store.Store, logger *zap.Logger) *InviteService {
+	return &InviteService{store: s, logger: logger.Named("service.invites")}
 }
 
 func (is *InviteService) GenerateInvite(ctx context.Context, isAdmin bool) (string, error) {
 	code := uuid.New().String()[:8]
-	err := withRetry(ctx, is.store, usersKey, func(data []byte) ([]byte, error) {
+	err := withRetry(ctx, is.store, usersKey, is.logger, func(data []byte) ([]byte, error) {
 		var ud domain.UsersData
 		if data != nil {
 			if err := json.Unmarshal(data, &ud); err != nil {

@@ -7,9 +7,10 @@ import (
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
+	"go.uber.org/zap"
 )
 
-func authRegisterHandler(auth *service.AuthService) http.HandlerFunc {
+func authRegisterHandler(auth *service.AuthService, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Username   string `json:"username"`
@@ -27,6 +28,7 @@ func authRegisterHandler(auth *service.AuthService) http.HandlerFunc {
 			case errors.Is(err, service.ErrUsernameTaken):
 				writeError(w, http.StatusConflict, err.Error())
 			default:
+				logger.Error("registration failed", zap.Error(err))
 				writeError(w, http.StatusInternalServerError, "registration failed")
 			}
 			return
@@ -81,10 +83,11 @@ func authLogoutHandler(secureCookie bool) http.HandlerFunc {
 	}
 }
 
-func listUsersHandler(auth *service.AuthService) http.HandlerFunc {
+func listUsersHandler(auth *service.AuthService, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		users, err := auth.ListUsers(r.Context())
 		if err != nil {
+			logger.Error("list users failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to list users")
 			return
 		}

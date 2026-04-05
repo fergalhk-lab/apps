@@ -51,15 +51,15 @@ func main() {
 	store := localstore.NewS3Store(s3Client, cfg.S3Bucket)
 
 	svc := handler.Services{
-		Auth:        service.NewAuthService(store, cfg.JWTSecret),
-		Groups:      service.NewGroupService(store),
-		Expenses:    service.NewExpenseService(store),
-		Settlements: service.NewSettlementService(store),
-		Invites:     service.NewInviteService(store),
-		FXRates:     fxrates.NewCache(store),
+		Auth:        service.NewAuthService(store, cfg.JWTSecret, logger),
+		Groups:      service.NewGroupService(store, logger),
+		Expenses:    service.NewExpenseService(store, logger),
+		Settlements: service.NewSettlementService(store, logger),
+		Invites:     service.NewInviteService(store, logger),
+		FXRates:     fxrates.NewCache(store, logger),
 	}
 
-	apiRouter := handler.NewRouter(svc, cfg.SecureCookie)
+	apiRouter := handler.NewRouter(svc, logger, cfg.SecureCookie)
 
 	distFS, err := fs.Sub(frontendDist, "frontend/dist")
 	if err != nil {

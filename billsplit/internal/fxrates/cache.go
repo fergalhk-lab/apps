@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
+	"go.uber.org/zap"
 )
 
 const cacheTTL = time.Hour
@@ -15,14 +16,15 @@ const cacheTTL = time.Hour
 // Thread-safe; safe to share across goroutines.
 type Cache struct {
 	store     store.Store
+	logger    *zap.Logger
 	mu        sync.Mutex
 	data      *Rates
 	fetchedAt time.Time
 }
 
 // NewCache returns a Cache backed by s.
-func NewCache(s store.Store) *Cache {
-	return &Cache{store: s}
+func NewCache(s store.Store, logger *zap.Logger) *Cache {
+	return &Cache{store: s, logger: logger.Named("fxrates")}
 }
 
 // Get returns the cached Rates if fetched within the last hour, otherwise
