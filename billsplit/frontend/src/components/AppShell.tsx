@@ -66,6 +66,7 @@ export default function AppShell() {
         onToggle={() => setCollapsed(v => {
           const next = !v
           localStorage.setItem('sidebar-collapsed', String(next))
+          if (next) { setShowInvitePanel(false); setInviteCode('') }
           return next
         })}
         onNewGroup={() => setShowCreateGroup(true)}

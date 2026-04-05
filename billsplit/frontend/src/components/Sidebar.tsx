@@ -142,7 +142,7 @@ export default function Sidebar({
         )}
       </div>
 
-      {isAdmin && !collapsed && <Separator />}
+      <Separator />
 
       {/* Admin invite panel — hidden when collapsed */}
       {isAdmin && !collapsed && (
@@ -212,6 +212,7 @@ export default function Sidebar({
         <div className="px-4 py-3 flex items-center justify-between">
           <button
             onClick={onLogout}
+            aria-label={`Log out ${username}`}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors truncate"
           >
             {username}
