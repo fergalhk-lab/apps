@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
@@ -15,6 +16,7 @@ import (
 
 var ErrUnknownMembers = errors.New("one or more members not found")
 var ErrDuplicateMembers = errors.New("duplicate members")
+var ErrOutstandingBalances = errors.New("group has outstanding balances")
 
 type GroupSummary struct {
 	ID         string  `json:"id"`
@@ -174,6 +176,28 @@ func (gs *GroupService) LeaveGroup(ctx context.Context, groupID, username string
 			if ud.Users[i].Username == username {
 				ud.Users[i].GroupIDs = removeString(ud.Users[i].GroupIDs, groupID)
 			}
+		}
+		return json.Marshal(ud)
+	})
+}
+
+func (gs *GroupService) DeleteGroup(ctx context.Context, groupID string) error {
+	g, err := gs.readGroup(ctx, groupID)
+	if err != nil {
+		return err
+	}
+	for _, b := range domain.ComputeBalances(g) {
+		if math.Abs(b) > 1e-9 {
+			return ErrOutstandingBalances
+		}
+	}
+	return withRetry(ctx, gs.store, usersKey, gs.logger, func(raw []byte) ([]byte, error) {
+		var ud domain.UsersData
+		if err := json.Unmarshal(raw, &ud); err != nil {
+			return nil, err
+		}
+		for i := range ud.Users {
+			ud.Users[i].GroupIDs = removeString(ud.Users[i].GroupIDs, groupID)
 		}
 		return json.Marshal(ud)
 	})

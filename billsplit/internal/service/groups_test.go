@@ -8,6 +8,7 @@ import (
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
+	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -162,4 +163,56 @@ func TestListGroups_WarnsOnMissingGroup(t *testing.T) {
 	require.Equal(t, "group not found, skipping", entry.Message)
 	require.Equal(t, "nonexistent-id", entry.ContextMap()["group_id"],
 		"log should identify the missing group by ID")
+}
+
+func TestDeleteGroup_AllBalancesZero(t *testing.T) {
+	auth, invites, groups := setupGroupTest(t)
+	ctx := context.Background()
+
+	code, _ := invites.GenerateInvite(ctx, false)
+	_ = auth.Register(ctx, "alice", "pw", code)
+
+	id, err := groups.CreateGroup(ctx, "alice", "Barcelona", "EUR", []string{})
+	require.NoError(t, err)
+
+	err = groups.DeleteGroup(ctx, id)
+	require.NoError(t, err, "delete with zero balances should succeed")
+
+	list, err := groups.ListGroups(ctx, "alice")
+	require.NoError(t, err)
+	require.Empty(t, list, "group should be removed from alice's list after delete")
+}
+
+func TestDeleteGroup_OutstandingBalances(t *testing.T) {
+	st := newTestStore(t)
+	ctx := context.Background()
+	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	invites := service.NewInviteService(st, zaptest.NewLogger(t))
+	groups := service.NewGroupService(st, zaptest.NewLogger(t))
+	expenses := service.NewExpenseService(st, zaptest.NewLogger(t))
+
+	codeA, _ := invites.GenerateInvite(ctx, false)
+	_ = auth.Register(ctx, "alice", "pw", codeA)
+	codeB, _ := invites.GenerateInvite(ctx, false)
+	_ = auth.Register(ctx, "bob", "pw", codeB)
+
+	gid, err := groups.CreateGroup(ctx, "alice", "Trip", "EUR", []string{"bob"})
+	require.NoError(t, err)
+
+	_, err = expenses.AddExpense(ctx, gid, "alice", "Dinner", "alice", 100.0, map[string]float64{
+		"alice": 50.0,
+		"bob":   50.0,
+	}, nil)
+	require.NoError(t, err)
+
+	err = groups.DeleteGroup(ctx, gid)
+	require.ErrorIs(t, err, service.ErrOutstandingBalances)
+}
+
+func TestDeleteGroup_NotFound(t *testing.T) {
+	_, _, groups := setupGroupTest(t)
+	ctx := context.Background()
+
+	err := groups.DeleteGroup(ctx, "nonexistent-id")
+	require.ErrorIs(t, err, store.ErrNotFound)
 }
