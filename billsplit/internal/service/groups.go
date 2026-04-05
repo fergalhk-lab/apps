@@ -191,6 +191,9 @@ func (gs *GroupService) DeleteGroup(ctx context.Context, groupID string) error {
 			return ErrOutstandingBalances
 		}
 	}
+
+	// Soft delete: remove the group ID from all members in users.json but leave
+	// the group object in S3. This preserves the transaction history if needed.
 	return withRetry(ctx, gs.store, usersKey, gs.logger, func(raw []byte) ([]byte, error) {
 		var ud domain.UsersData
 		if err := json.Unmarshal(raw, &ud); err != nil {
