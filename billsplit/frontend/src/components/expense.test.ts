@@ -1,4 +1,3 @@
-// frontend-new/src/components/expense.test.ts
 import { describe, it, expect } from 'vitest'
 import { computeSplits } from './AddExpenseModal'
 

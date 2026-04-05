@@ -65,7 +65,7 @@ function largestRemainder(
   const floored = rawAmounts.map(r => Math.floor(r * 100))
   const remainders = rawAmounts.map((r, i) => r * 100 - floored[i])
 
-  let leftover = totalCents - floored.reduce((a, b) => a + b, 0)
+  const leftover = totalCents - floored.reduce((a, b) => a + b, 0)
 
   // Sort indices by descending remainder, distribute leftover cents
   const order = members.map((_, i) => i).sort((a, b) => remainders[b] - remainders[a])
