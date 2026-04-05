@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 )
 
@@ -22,7 +23,7 @@ func addExpenseHandler(expenses *service.ExpenseService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		username := UsernameFromCtx(r)
+		username := middleware.UsernameFromCtx(r)
 		eventID, err := expenses.AddExpense(r.Context(), groupID, username, req.Description, req.PaidBy, req.Amount, req.Splits)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
@@ -56,7 +57,7 @@ func cancelExpenseHandler(expenses *service.ExpenseService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		eventID := r.PathValue("eventId")
-		username := UsernameFromCtx(r)
+		username := middleware.UsernameFromCtx(r)
 		if err := expenses.CancelExpense(r.Context(), groupID, username, eventID); err != nil {
 			if errors.Is(err, service.ErrEventNotFound) {
 				writeError(w, http.StatusNotFound, "event not found")

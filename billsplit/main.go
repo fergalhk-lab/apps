@@ -14,8 +14,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/fergalhk-lab/apps/billsplit/internal/config"
 	"github.com/fergalhk-lab/apps/billsplit/internal/handler"
+	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	localstore "github.com/fergalhk-lab/apps/billsplit/internal/store"
+	"go.uber.org/zap"
 )
 
 // frontend/dist is populated by `npm run build` in billsplit/frontend/.
@@ -28,6 +30,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("config: %v", err)
 	}
+
+	zapCfg := zap.NewProductionConfig()
+	zapCfg.Sampling = nil
+	logger, err := zapCfg.Build()
+	if err != nil {
+		log.Fatalf("logger: %v", err)
+	}
+	defer logger.Sync() //nolint:errcheck
 
 	awsOpts := []func(*awsconfig.LoadOptions) error{}
 	if cfg.S3Endpoint != "" {
@@ -69,6 +79,9 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiRouter)
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		_, err := fs.Stat(distFS, r.URL.Path[1:])
 		if err != nil {
@@ -79,7 +92,7 @@ func main() {
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	log.Printf("listening on %s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := http.ListenAndServe(addr, middleware.RecoverPanic(logger)(middleware.RequestLogger(logger)(mux))); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }
