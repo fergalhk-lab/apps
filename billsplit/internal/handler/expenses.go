@@ -24,7 +24,7 @@ func addExpenseHandler(expenses *service.ExpenseService) http.HandlerFunc {
 			return
 		}
 		username := middleware.UsernameFromCtx(r)
-		eventID, err := expenses.AddExpense(r.Context(), groupID, username, req.Description, req.PaidBy, req.Amount, req.Splits)
+		eventID, err := expenses.AddExpense(r.Context(), groupID, username, req.Description, req.PaidBy, req.Amount, req.Splits, nil)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return

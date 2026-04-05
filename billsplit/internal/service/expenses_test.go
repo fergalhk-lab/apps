@@ -5,6 +5,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,8 +21,6 @@ func setupExpenseTest(t *testing.T) (*service.AuthService, *service.InviteServic
 	return auth, invites, groups, expenses
 }
 
-// registerAndCreateGroup is a test helper that registers two users (alice and
-// bob) and creates a group containing both.
 func registerAndCreateGroup(t *testing.T, auth *service.AuthService, invites *service.InviteService, groups *service.GroupService) (groupID string) {
 	t.Helper()
 	ctx := context.Background()
@@ -49,7 +48,7 @@ func TestAddExpense(t *testing.T) {
 	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
 		"alice": 50.0,
 		"bob":   50.0,
-	})
+	}, nil)
 	require.NoError(t, err, "add expense: %v", err)
 	require.NotEmpty(t, eventID, "expected non-empty event ID")
 }
@@ -59,11 +58,10 @@ func TestAddExpense_InvalidSplits(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	// splits don't sum to total
 	_, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
 		"alice": 40.0,
 		"bob":   40.0,
-	})
+	}, nil)
 	require.Error(t, err, "expected error for invalid splits")
 }
 
@@ -75,7 +73,7 @@ func TestAddExpense_UnknownMemberInSplits(t *testing.T) {
 	_, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
 		"alice":  50.0,
 		"nobody": 50.0,
-	})
+	}, nil)
 	require.Error(t, err, "expected error for unknown split member")
 }
 
@@ -87,7 +85,7 @@ func TestCancelExpense(t *testing.T) {
 	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
 		"alice": 50.0,
 		"bob":   50.0,
-	})
+	}, nil)
 	require.NoError(t, err, "add expense: %v", err)
 
 	err = expenses.CancelExpense(ctx, groupID, "alice", eventID)
@@ -102,7 +100,7 @@ func TestCancelExpense_AlreadyCancelled(t *testing.T) {
 	eventID, _ := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
 		"alice": 50.0,
 		"bob":   50.0,
-	})
+	}, nil)
 	_ = expenses.CancelExpense(ctx, groupID, "alice", eventID)
 
 	err := expenses.CancelExpense(ctx, groupID, "alice", eventID)
@@ -126,11 +124,11 @@ func TestListEvents_NewestFirst(t *testing.T) {
 	id1, _ := expenses.AddExpense(ctx, groupID, "alice", "First", "alice", 60.0, map[string]float64{
 		"alice": 30.0,
 		"bob":   30.0,
-	})
+	}, nil)
 	id2, _ := expenses.AddExpense(ctx, groupID, "alice", "Second", "alice", 40.0, map[string]float64{
 		"alice": 20.0,
 		"bob":   20.0,
-	})
+	}, nil)
 
 	events, total, err := expenses.ListEvents(ctx, groupID, 10, 0)
 	require.NoError(t, err, "list events: %v", err)
@@ -149,7 +147,7 @@ func TestListEvents_Pagination(t *testing.T) {
 		_, err := expenses.AddExpense(ctx, groupID, "alice", "Expense", "alice", 20.0, map[string]float64{
 			"alice": 10.0,
 			"bob":   10.0,
-		})
+		}, nil)
 		require.NoError(t, err, "add expense %d: %v", i, err)
 	}
 
@@ -162,9 +160,39 @@ func TestListEvents_Pagination(t *testing.T) {
 	require.NoError(t, err, "list page 3: %v", err)
 	require.Len(t, page3, 1, "expected 1 event on last page, got %d", len(page3))
 
-	// offset beyond end returns empty slice
 	empty, total2, err := expenses.ListEvents(ctx, groupID, 2, 10)
 	require.NoError(t, err, "list beyond end: %v", err)
 	require.Equal(t, 5, total2, "expected total=5, got %d", total2)
 	require.Empty(t, empty, "expected empty slice, got %d events", len(empty))
+}
+
+func TestGetGroupCurrency(t *testing.T) {
+	auth, invites, groups, expenses := setupExpenseTest(t)
+	ctx := context.Background()
+	groupID := registerAndCreateGroup(t, auth, invites, groups)
+
+	currency, err := expenses.GetGroupCurrency(ctx, groupID)
+	require.NoError(t, err)
+	require.Equal(t, "EUR", currency)
+}
+
+func TestAddExpense_WithOriginalExpense(t *testing.T) {
+	auth, invites, groups, expenses := setupExpenseTest(t)
+	ctx := context.Background()
+	groupID := registerAndCreateGroup(t, auth, invites, groups)
+
+	orig := &domain.OriginalExpense{Currency: "GBP", Amount: 45.0}
+	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 50.0, map[string]float64{
+		"alice": 25.0,
+		"bob":   25.0,
+	}, orig)
+	require.NoError(t, err)
+	require.NotEmpty(t, eventID)
+
+	events, _, err := expenses.ListEvents(ctx, groupID, 10, 0)
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.NotNil(t, events[0].OriginalExpense)
+	require.Equal(t, "GBP", events[0].OriginalExpense.Currency)
+	require.Equal(t, 45.0, events[0].OriginalExpense.Amount)
 }
