@@ -73,27 +73,32 @@ func (a *AuthService) Register(ctx context.Context, username, password, inviteCo
 	})
 }
 
-func (a *AuthService) Login(ctx context.Context, username, password string) (string, error) {
+func (a *AuthService) Login(ctx context.Context, username, password string) (string, Claims, error) {
 	data, _, err := a.store.ReadObject(ctx, usersKey)
 	if errors.Is(err, store.ErrNotFound) {
-		return "", ErrBadCredentials
+		return "", Claims{}, ErrBadCredentials
 	}
 	if err != nil {
-		return "", err
+		return "", Claims{}, err
 	}
 	var ud domain.UsersData
 	if err := json.Unmarshal(data, &ud); err != nil {
-		return "", err
+		return "", Claims{}, err
 	}
 	for _, u := range ud.Users {
 		if u.Username == username {
 			if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
-				return "", ErrBadCredentials
+				return "", Claims{}, ErrBadCredentials
 			}
-			return a.issueToken(Claims{Username: u.Username, IsAdmin: u.IsAdmin})
+			c := Claims{Username: u.Username, IsAdmin: u.IsAdmin}
+			token, err := a.issueToken(c)
+			if err != nil {
+				return "", Claims{}, err
+			}
+			return token, c, nil
 		}
 	}
-	return "", ErrBadCredentials
+	return "", Claims{}, ErrBadCredentials
 }
 
 // ListUsers returns a summary of every registered user.

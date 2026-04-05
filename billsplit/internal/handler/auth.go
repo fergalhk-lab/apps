@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 )
 
@@ -34,7 +35,7 @@ func authRegisterHandler(auth *service.AuthService) http.HandlerFunc {
 	}
 }
 
-func authLoginHandler(auth *service.AuthService) http.HandlerFunc {
+func authLoginHandler(auth *service.AuthService, secureCookie bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Username string `json:"username"`
@@ -44,12 +45,39 @@ func authLoginHandler(auth *service.AuthService) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		token, err := auth.Login(r.Context(), req.Username, req.Password)
+		token, claims, err := auth.Login(r.Context(), req.Username, req.Password)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]string{"token": token})
+		http.SetCookie(w, &http.Cookie{
+			Name:     middleware.SessionCookieName,
+			Value:    token,
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			Secure:   secureCookie,
+			Path:     "/",
+			MaxAge:   86400,
+		})
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"username": claims.Username,
+			"isAdmin":  claims.IsAdmin,
+		})
+	}
+}
+
+func authLogoutHandler(secureCookie bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     middleware.SessionCookieName,
+			Value:    "",
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			Secure:   secureCookie,
+			Path:     "/",
+			MaxAge:   -1,
+		})
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

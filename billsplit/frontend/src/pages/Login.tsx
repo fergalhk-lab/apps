@@ -1,7 +1,7 @@
 // frontend/src/pages/Login.tsx
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { api, setToken } from '@/api'
+import { api } from '@/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,8 +17,7 @@ export default function Login() {
     e.preventDefault()
     setError('')
     try {
-      const { token } = await api.login(username, password)
-      setToken(token)
+      await api.login(username, password)
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')

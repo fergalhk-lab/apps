@@ -16,12 +16,13 @@ type Services struct {
 	Invites     *service.InviteService
 }
 
-func NewRouter(svc Services) http.Handler {
+func NewRouter(svc Services, secureCookie bool) http.Handler {
 	mux := http.NewServeMux()
 
 	// Auth (no JWT required)
 	mux.HandleFunc("POST /api/auth/register", authRegisterHandler(svc.Auth))
-	mux.HandleFunc("POST /api/auth/login", authLoginHandler(svc.Auth))
+	mux.HandleFunc("POST /api/auth/login", authLoginHandler(svc.Auth, secureCookie))
+	mux.HandleFunc("POST /api/auth/logout", authLogoutHandler(secureCookie))
 
 	// Users
 	mux.Handle("GET /api/users", middleware.RequireAuth(svc.Auth, http.HandlerFunc(listUsersHandler(svc.Auth))))

@@ -1,24 +1,29 @@
 // frontend/src/api.ts
 
 const BASE = '/api'
-export const TOKEN_KEY = 'billsplit_token'
 
-function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+export const USERNAME_KEY = 'billsplit_username'
+export const IS_ADMIN_KEY = 'billsplit_is_admin'
+
+export function storeIdentity(username: string, isAdmin: boolean): void {
+  localStorage.setItem(USERNAME_KEY, username)
+  localStorage.setItem(IS_ADMIN_KEY, String(isAdmin))
 }
 
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
+export function clearIdentity(): void {
+  localStorage.removeItem(USERNAME_KEY)
+  localStorage.removeItem(IS_ADMIN_KEY)
 }
 
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
+export function getIdentity(): { username: string; isAdmin: boolean } {
+  return {
+    username: localStorage.getItem(USERNAME_KEY) ?? '',
+    isAdmin: localStorage.getItem(IS_ADMIN_KEY) === 'true',
+  }
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const token = getToken()
-  if (token) headers['Authorization'] = `Bearer ${token}`
 
   const res = await fetch(BASE + path, {
     method,
@@ -30,7 +35,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const data = await res.json()
   if (!res.ok) {
     if (res.status === 401) {
-      clearToken()
+      clearIdentity()
       window.location.href = '/login'
     }
     throw Object.assign(new Error(data.error || 'Request failed'), { status: res.status })
@@ -76,14 +81,20 @@ export type EventsResponse = {
 
 export type UserSummary = { id: string }
 
-export type TokenPayload = { username: string; isAdmin: boolean }
-
 export const api = {
   register: (username: string, password: string, inviteCode: string) =>
     request<void>('POST', '/auth/register', { username, password, inviteCode }),
 
-  login: (username: string, password: string) =>
-    request<{ token: string }>('POST', '/auth/login', { username, password }),
+  login: async (username: string, password: string): Promise<{ username: string; isAdmin: boolean }> => {
+    const res = await request<{ username: string; isAdmin: boolean }>('POST', '/auth/login', { username, password })
+    storeIdentity(res.username, res.isAdmin)
+    return res
+  },
+
+  logout: async (): Promise<void> => {
+    await request<void>('POST', '/auth/logout')
+    clearIdentity()
+  },
 
   getGroups: () => request<Group[]>('GET', '/groups'),
 
@@ -115,16 +126,4 @@ export const api = {
 
   generateInvite: (isAdmin: boolean) =>
     request<{ code: string }>('POST', '/admin/invites', { isAdmin }),
-}
-
-// NOTE: Only decodes the payload — does NOT verify the signature.
-// The server enforces admin authorisation; this is UI display only.
-export function parseToken(token: string): TokenPayload {
-  try {
-    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
-    return JSON.parse(atob(padded)) as TokenPayload
-  } catch {
-    return { username: '', isAdmin: false }
-  }
 }

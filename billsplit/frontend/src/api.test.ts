@@ -1,30 +1,41 @@
-import { describe, it, expect } from 'vitest'
-import { parseToken } from './api'
+// frontend/src/api.test.ts
+import { describe, it, expect, beforeEach } from 'vitest'
+import { storeIdentity, clearIdentity, getIdentity, USERNAME_KEY, IS_ADMIN_KEY } from './api'
 
-describe('parseToken', () => {
-  it('decodes a valid JWT payload', () => {
-    // Build a fake JWT: header.payload.signature
-    // payload = { username: 'alice', isAdmin: true }
-    const payload = btoa(JSON.stringify({ username: 'alice', isAdmin: true }))
-    const token = `header.${payload}.sig`
-    const result = parseToken(token)
-    expect(result.username).toBe('alice')
-    expect(result.isAdmin).toBe(true)
+describe('identity localStorage helpers', () => {
+  beforeEach(() => {
+    localStorage.clear()
   })
 
-  it('decodes a base64url-encoded JWT payload (real JWT format)', () => {
-    // Real JWTs use base64url: '+' → '-', '/' → '_', no padding
-    const json = JSON.stringify({ username: 'bob', isAdmin: false })
-    const b64url = btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-    const token = `header.${b64url}.sig`
-    const result = parseToken(token)
-    expect(result.username).toBe('bob')
-    expect(result.isAdmin).toBe(false)
+  it('storeIdentity writes username and isAdmin to localStorage', () => {
+    storeIdentity('alice', true)
+    expect(localStorage.getItem(USERNAME_KEY)).toBe('alice')
+    expect(localStorage.getItem(IS_ADMIN_KEY)).toBe('true')
   })
 
-  it('returns safe defaults for a malformed token', () => {
-    const result = parseToken('not-a-jwt')
-    expect(result.username).toBe('')
-    expect(result.isAdmin).toBe(false)
+  it('storeIdentity writes isAdmin=false correctly', () => {
+    storeIdentity('bob', false)
+    expect(localStorage.getItem(IS_ADMIN_KEY)).toBe('false')
+  })
+
+  it('clearIdentity removes both keys', () => {
+    storeIdentity('alice', true)
+    clearIdentity()
+    expect(localStorage.getItem(USERNAME_KEY)).toBeNull()
+    expect(localStorage.getItem(IS_ADMIN_KEY)).toBeNull()
+  })
+
+  it('getIdentity returns stored values', () => {
+    storeIdentity('bob', false)
+    expect(getIdentity()).toEqual({ username: 'bob', isAdmin: false })
+  })
+
+  it('getIdentity returns empty defaults when nothing stored', () => {
+    expect(getIdentity()).toEqual({ username: '', isAdmin: false })
+  })
+
+  it('getIdentity correctly reads isAdmin=true', () => {
+    storeIdentity('admin', true)
+    expect(getIdentity().isAdmin).toBe(true)
   })
 })

@@ -2,15 +2,15 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/ThemeProvider'
-import { TOKEN_KEY } from '@/api'
+import { getIdentity } from '@/api'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import AppShell from '@/components/AppShell'
 import GroupDetail from '@/pages/GroupDetail'
 
 function ProtectedRoute() {
-  const token = localStorage.getItem(TOKEN_KEY)
-  return token ? <Outlet /> : <Navigate to="/login" replace />
+  const { username } = getIdentity()
+  return username ? <Outlet /> : <Navigate to="/login" replace />
 }
 
 export default function App() {
