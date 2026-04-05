@@ -102,7 +102,7 @@ export default function Sidebar({
       {isAdmin && (
         <div className="px-4 py-2">
           <button
-            onClick={() => { onToggleInvitePanel(); }}
+            onClick={onToggleInvitePanel}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
             Generate invite
