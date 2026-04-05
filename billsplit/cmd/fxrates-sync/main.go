@@ -10,10 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/fergalhk-lab/apps/billsplit/internal/config"
+	"github.com/fergalhk-lab/apps/billsplit/internal/dependencies"
 	"github.com/fergalhk-lab/apps/billsplit/internal/fxrates"
 	"github.com/fergalhk-lab/apps/billsplit/internal/fxrates/provider"
 	localstore "github.com/fergalhk-lab/apps/billsplit/internal/store"
@@ -27,25 +25,10 @@ func main() {
 		log.Fatalf("config: %v", err)
 	}
 
-	awsOpts := []func(*awsconfig.LoadOptions) error{}
-	if cfg.S3Endpoint != "" {
-		awsOpts = append(awsOpts, awsconfig.WithEndpointResolverWithOptions(
-			aws.EndpointResolverWithOptionsFunc(func(svc, region string, _ ...interface{}) (aws.Endpoint, error) {
-				return aws.Endpoint{URL: cfg.S3Endpoint, HostnameImmutable: true}, nil
-			}),
-		))
-	}
-
-	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), awsOpts...)
+	s3Client, err := dependencies.NewS3Client(context.Background())
 	if err != nil {
-		log.Fatalf("aws config: %v", err)
+		log.Fatalf("s3 client: %v", err)
 	}
-
-	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
-		if cfg.S3Endpoint != "" {
-			o.UsePathStyle = true
-		}
-	})
 
 	st := localstore.NewS3Store(s3Client, cfg.S3Bucket)
 	ctx := context.Background()
