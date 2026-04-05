@@ -137,6 +137,8 @@ export const api = {
   leaveGroup: (groupId: string, username: string) =>
     request<void>('DELETE', `/groups/${groupId}/members/${username}`),
 
+  deleteGroup: (id: string) => request<void>('DELETE', `/groups/${id}`),
+
   generateInvite: (isAdmin: boolean) =>
     request<{ code: string }>('POST', '/admin/invites', { isAdmin }),
 

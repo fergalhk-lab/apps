@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useOutletContext } from 'react-router-dom'
+import { useParams, useOutletContext, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { api, type Group, type GroupEvent, type Settlement } from '@/api'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,9 @@ export default function GroupDetail() {
   const [showExpense, setShowExpense] = useState(false)
   const [showSettlement, setShowSettlement] = useState(false)
   const [settlementPrefill, setSettlementPrefill] = useState<Settlement | null>(null)
+
+  const navigate = useNavigate()
+  const hasOutstandingBalances = Object.values(group?.balances ?? {}).some(b => Math.abs(b) > 1e-9)
 
   async function loadGroup() {
     try {
@@ -70,6 +73,17 @@ export default function GroupDetail() {
     reloadGroups()
   }
 
+  async function handleDeleteGroup() {
+    try {
+      await api.deleteGroup(groupId!)
+      toast.success('Group deleted')
+      reloadGroups()
+      navigate('/groups')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete group')
+    }
+  }
+
   if (!group) return <div className="p-8 text-muted-foreground">Loading...</div>
 
   return (
@@ -83,6 +97,14 @@ export default function GroupDetail() {
         <div className="flex gap-2">
           <Button onClick={() => setShowExpense(true)}>+ Expense</Button>
           <Button variant="outline" onClick={() => setShowSettlement(true)}>+ Settle</Button>
+          <Button
+            variant="destructive"
+            disabled={hasOutstandingBalances}
+            title={hasOutstandingBalances ? 'Settle all balances before deleting' : undefined}
+            onClick={handleDeleteGroup}
+          >
+            Delete group
+          </Button>
         </div>
       </div>
 

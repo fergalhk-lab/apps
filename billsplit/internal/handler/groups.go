@@ -90,3 +90,23 @@ func leaveGroupHandler(groups *service.GroupService) http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
+
+func deleteGroupHandler(groups *service.GroupService, logger *zap.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		groupID := r.PathValue("id")
+		if err := groups.DeleteGroup(r.Context(), groupID); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				writeError(w, http.StatusNotFound, "group not found")
+				return
+			}
+			if errors.Is(err, service.ErrOutstandingBalances) {
+				writeError(w, http.StatusConflict, err.Error())
+				return
+			}
+			logger.Error("delete group failed", zap.Error(err))
+			writeError(w, http.StatusInternalServerError, "failed to delete group")
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
