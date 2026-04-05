@@ -75,7 +75,7 @@ func (gs *GroupService) CreateGroup(ctx context.Context, creatorUsername, name, 
 	}
 
 	// Add groupID to all members in users.json
-	if err := withRetry(ctx, gs.store, usersKey, func(raw []byte) ([]byte, error) {
+	if err := withRetry(ctx, gs.store, usersKey, gs.logger, func(raw []byte) ([]byte, error) {
 		if raw == nil {
 			return nil, errors.New("users.json not found")
 		}
@@ -164,7 +164,7 @@ func (gs *GroupService) LeaveGroup(ctx context.Context, groupID, username string
 	}
 
 	// Remove groupID from user's record
-	return withRetry(ctx, gs.store, usersKey, func(raw []byte) ([]byte, error) {
+	return withRetry(ctx, gs.store, usersKey, gs.logger, func(raw []byte) ([]byte, error) {
 		var ud domain.UsersData
 		if err := json.Unmarshal(raw, &ud); err != nil {
 			return nil, err

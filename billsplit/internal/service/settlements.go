@@ -25,7 +25,7 @@ func NewSettlementService(s store.Store, logger *zap.Logger) *SettlementService 
 
 func (ss *SettlementService) AddSettlement(ctx context.Context, groupID, createdBy, from, to string, amount float64) error {
 	eventID := uuid.New().String()
-	return withRetry(ctx, ss.store, groupKey(groupID), func(data []byte) ([]byte, error) {
+	return withRetry(ctx, ss.store, groupKey(groupID), ss.logger, func(data []byte) ([]byte, error) {
 		if data == nil {
 			return nil, store.ErrNotFound
 		}

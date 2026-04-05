@@ -39,7 +39,7 @@ func NewAuthService(s store.Store, jwtSecret string, logger *zap.Logger) *AuthSe
 }
 
 func (a *AuthService) Register(ctx context.Context, username, password, inviteCode string) error {
-	return withRetry(ctx, a.store, usersKey, func(data []byte) ([]byte, error) {
+	return withRetry(ctx, a.store, usersKey, a.logger, func(data []byte) ([]byte, error) {
 		ud, err := a.unmarshalOrEmpty(data)
 		if err != nil {
 			return nil, err
