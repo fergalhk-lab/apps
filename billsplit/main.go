@@ -13,6 +13,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/fergalhk-lab/apps/billsplit/internal/config"
+	"github.com/fergalhk-lab/apps/billsplit/internal/fxrates"
 	"github.com/fergalhk-lab/apps/billsplit/internal/handler"
 	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
@@ -67,6 +68,7 @@ func main() {
 		Expenses:    service.NewExpenseService(store),
 		Settlements: service.NewSettlementService(store),
 		Invites:     service.NewInviteService(store),
+		FXRates:     fxrates.NewCache(store),
 	}
 
 	apiRouter := handler.NewRouter(svc, cfg.SecureCookie)
