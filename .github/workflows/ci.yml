@@ -140,8 +140,12 @@ jobs:
             app=$(echo "$entry" | jq -r '.name')
             path=$(echo "$entry" | jq -r '.path')
             cluster=$(echo "$entry" | jq -r '.cluster')
+            if [ -z "$cluster" ] || [ "$cluster" = "null" ]; then
+              echo "Skipping $app: no cluster configured."
+              continue
+            fi
             mkdir -p "k8s-deployments/clusters/$cluster/$app"
-            sed "s/IMAGE_TAG/$SHA/g" "${path}deploy.yaml" > /tmp/deploy-rendered.yaml
+            sed "s|IMAGE_TAG|$SHA|g" "${path}deploy.yaml" > /tmp/deploy-rendered.yaml
             deployer /tmp/deploy-rendered.yaml \
               > "k8s-deployments/clusters/$cluster/$app/manifests.yaml"
           done

@@ -31,7 +31,9 @@ runs:
           --query 'SecretString' \
           --output text)
 
-        echo "app_id=$(echo "$SECRET" | jq -r '.app_id')" >> "$GITHUB_OUTPUT"
+        APP_ID=$(echo "$SECRET" | jq -r '.app_id')
+        echo "::add-mask::$APP_ID"
+        echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
 
         PRIVATE_KEY=$(echo "$SECRET" | jq -r '.private_key')
         while IFS= read -r line; do

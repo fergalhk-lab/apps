@@ -97,3 +97,19 @@ func TestBuildMatrix_ClusterField(t *testing.T) {
 	require.Len(t, m.Include, 1)
 	require.Equal(t, "mgmt", m.Include[0].Cluster)
 }
+
+func TestBuildMatrix_NoDeployment(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Apps = []App{
+		{
+			Name:  "myapp",
+			Path:  "myapp/",
+			Tests: []Test{{Name: "go", Run: "go test ./..."}},
+		},
+	}
+
+	m := buildMatrix(cfg)
+
+	require.Len(t, m.Include, 1)
+	require.Equal(t, "", m.Include[0].Cluster)
+}
