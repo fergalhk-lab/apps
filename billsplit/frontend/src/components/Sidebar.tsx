@@ -86,6 +86,7 @@ export default function Sidebar({
               key={g.id}
               to={`/groups/${g.id}`}
               title={g.name}
+              aria-label={g.name}
               className="flex items-center justify-center py-1 mx-1 my-0.5"
             >
               <span
@@ -125,6 +126,7 @@ export default function Sidebar({
           <button
             onClick={onNewGroup}
             title="New group"
+            aria-label="New group"
             className="flex items-center justify-center py-1 mx-1 my-0.5 w-full text-muted-foreground hover:text-foreground transition-colors"
           >
             <Plus className="h-4 w-4" />
