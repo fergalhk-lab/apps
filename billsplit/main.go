@@ -99,8 +99,12 @@ func main() {
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
 	server := &http.Server{
-		Addr:    addr,
-		Handler: middleware.RecoverPanic(logger)(middleware.RequestLogger(logger)(mux)),
+		Addr:              addr,
+		Handler:           middleware.RecoverPanic(logger)(middleware.RequestLogger(logger)(mux)),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -110,7 +114,7 @@ func main() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil {
-			log.Printf("shutdown: %v", err)
+			logger.Error("shutdown error", zap.Error(err))
 		}
 	}()
 
@@ -118,5 +122,5 @@ func main() {
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("server: %v", err)
 	}
-	log.Printf("server stopped")
+	logger.Info("server stopped")
 }
