@@ -4,10 +4,15 @@ package main
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/config"
 	"github.com/fergalhk-lab/apps/billsplit/internal/dependencies"
@@ -76,8 +81,29 @@ func main() {
 	})
 
 	addr := fmt.Sprintf(":%s", cfg.Port)
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           middleware.RecoverPanic(logger)(middleware.RequestLogger(logger)(mux)),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
+
+	sigCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigCtx.Done()
+		stop()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			logger.Error("shutdown error", zap.Error(err))
+		}
+	}()
+
 	log.Printf("listening on %s", addr)
-	if err := http.ListenAndServe(addr, middleware.RecoverPanic(logger)(middleware.RequestLogger(logger)(mux))); err != nil {
+	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("server: %v", err)
 	}
+	logger.Info("server stopped")
 }
