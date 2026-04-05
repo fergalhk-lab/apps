@@ -4,7 +4,7 @@ services:
   - name: billsplit
     image:
       repository: 740994137039.dkr.ecr.eu-west-1.amazonaws.com/apps/billsplit
-      tag: cf4b4a9f0422cdff65c0b8d6b0079f956a18cc77
+      tag: 1091bcf213a353106759c06e7839d166f717f243
     resources:
       cpu: "100m"
       memory: "128Mi"
@@ -22,7 +22,7 @@ initJobs:
   - name: seed
     image:
       repository: 740994137039.dkr.ecr.eu-west-1.amazonaws.com/apps/billsplit
-      tag: cf4b4a9f0422cdff65c0b8d6b0079f956a18cc77
+      tag: 1091bcf213a353106759c06e7839d166f717f243
     resources:
       cpu: "100m"
       memory: "128Mi"
@@ -37,7 +37,7 @@ cronJobs:
   - name: fxrates-sync
     image:
       repository: 740994137039.dkr.ecr.eu-west-1.amazonaws.com/apps/billsplit
-      tag: cf4b4a9f0422cdff65c0b8d6b0079f956a18cc77
+      tag: 1091bcf213a353106759c06e7839d166f717f243
     resources:
       cpu: "100m"
       memory: "128Mi"
