@@ -81,6 +81,12 @@ export type EventsResponse = {
 
 export type UserSummary = { id: string }
 
+export type CurrenciesResponse = {
+  base: string
+  rates: Record<string, number>
+  updatedAt: string
+}
+
 export const api = {
   register: (username: string, password: string, inviteCode: string) =>
     request<void>('POST', '/auth/register', { username, password, inviteCode }),
@@ -113,6 +119,7 @@ export const api = {
     amount: number
     paidBy: string
     splits: Record<string, number>
+    currency?: string
   }) => request<void>('POST', `/groups/${groupId}/expenses`, payload),
 
   deleteExpense: (groupId: string, eventId: string) =>
@@ -126,4 +133,6 @@ export const api = {
 
   generateInvite: (isAdmin: boolean) =>
     request<{ code: string }>('POST', '/admin/invites', { isAdmin }),
+
+  getCurrencies: () => request<CurrenciesResponse>('GET', '/currencies'),
 }
