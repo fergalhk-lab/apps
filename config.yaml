@@ -10,3 +10,5 @@ apps:
     tests:
       - name: go
         run: go test -v ./billsplit/...
+      - name: frontend
+        run: npm --prefix billsplit/frontend test
