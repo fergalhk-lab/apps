@@ -65,6 +65,21 @@ func authLoginHandler(auth *service.AuthService, secureCookie bool) http.Handler
 	}
 }
 
+func authLogoutHandler(secureCookie bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session",
+			Value:    "",
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			Secure:   secureCookie,
+			Path:     "/",
+			MaxAge:   -1,
+		})
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func listUsersHandler(auth *service.AuthService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		users, err := auth.ListUsers(r.Context())

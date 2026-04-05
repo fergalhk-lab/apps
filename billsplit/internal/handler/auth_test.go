@@ -110,3 +110,18 @@ func TestLoginHandler_InvalidCredentials_Returns401(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	assert.Nil(t, sessionCookie(rr), "no cookie should be set on failed login")
 }
+
+func TestLogoutHandler_ClearsCookieAndReturns204(t *testing.T) {
+	router := newTestRouter(t)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/logout", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusNoContent, rr.Code)
+
+	cookie := sessionCookie(rr)
+	require.NotNil(t, cookie, "expected session cookie to be set in response (clearing it)")
+	assert.Equal(t, -1, cookie.MaxAge, "session cookie MaxAge should be -1 to delete it")
+	assert.Equal(t, "", cookie.Value, "session cookie value should be empty")
+}
