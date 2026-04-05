@@ -11,16 +11,18 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 var ErrEventNotFound = errors.New("event not found")
 
 type ExpenseService struct {
-	store store.Store
+	store  store.Store
+	logger *zap.Logger
 }
 
-func NewExpenseService(s store.Store) *ExpenseService {
-	return &ExpenseService{store: s}
+func NewExpenseService(s store.Store, logger *zap.Logger) *ExpenseService {
+	return &ExpenseService{store: s, logger: logger.Named("service.expenses")}
 }
 
 // GetGroupCurrency returns the base currency for the given group.

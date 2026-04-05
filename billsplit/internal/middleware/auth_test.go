@@ -12,13 +12,14 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 func setupAuth(t *testing.T) (*service.AuthService, string) {
 	t.Helper()
 	st := testutil.NewTestStore(t)
-	auth := service.NewAuthService(st, "test-secret")
-	invites := service.NewInviteService(st)
+	auth := service.NewAuthService(st, "test-secret", zaptest.NewLogger(t))
+	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	code, err := invites.GenerateInvite(context.Background(), false)
 	require.NoError(t, err)
 	require.NoError(t, auth.Register(context.Background(), "alice", "password123", code))

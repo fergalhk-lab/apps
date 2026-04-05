@@ -11,14 +11,16 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type SettlementService struct {
-	store store.Store
+	store  store.Store
+	logger *zap.Logger
 }
 
-func NewSettlementService(s store.Store) *SettlementService {
-	return &SettlementService{store: s}
+func NewSettlementService(s store.Store, logger *zap.Logger) *SettlementService {
+	return &SettlementService{store: s, logger: logger.Named("service.settlements")}
 }
 
 func (ss *SettlementService) AddSettlement(ctx context.Context, groupID, createdBy, from, to string, amount float64) error {

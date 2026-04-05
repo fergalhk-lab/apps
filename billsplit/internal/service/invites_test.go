@@ -7,12 +7,13 @@ import (
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestGenerateInvite(t *testing.T) {
 	st := newTestStore(t)
-	auth := service.NewAuthService(st, "secret")
-	invites := service.NewInviteService(st)
+	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	ctx := context.Background()
 
 	// Generate invite, use it to register
@@ -27,7 +28,7 @@ func TestGenerateInvite(t *testing.T) {
 
 func TestHasInvites(t *testing.T) {
 	st := newTestStore(t)
-	invites := service.NewInviteService(st)
+	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	ctx := context.Background()
 
 	// No invites on a fresh store

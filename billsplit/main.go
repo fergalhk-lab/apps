@@ -51,11 +51,11 @@ func main() {
 	store := localstore.NewS3Store(s3Client, cfg.S3Bucket)
 
 	svc := handler.Services{
-		Auth:        service.NewAuthService(store, cfg.JWTSecret),
-		Groups:      service.NewGroupService(store),
-		Expenses:    service.NewExpenseService(store),
-		Settlements: service.NewSettlementService(store),
-		Invites:     service.NewInviteService(store),
+		Auth:        service.NewAuthService(store, cfg.JWTSecret, logger),
+		Groups:      service.NewGroupService(store, logger),
+		Expenses:    service.NewExpenseService(store, logger),
+		Settlements: service.NewSettlementService(store, logger),
+		Invites:     service.NewInviteService(store, logger),
 		FXRates:     fxrates.NewCache(store),
 	}
 

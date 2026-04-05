@@ -15,6 +15,7 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 // newTestRouterWithFXRates creates a router with an fxrates cache seeded with
@@ -24,9 +25,9 @@ func newTestRouterWithFXRates(t *testing.T, rates map[string]float64) (http.Hand
 	st := testutil.NewTestStore(t)
 	ctx := context.Background()
 
-	auth := service.NewAuthService(st, "test-secret")
-	invites := service.NewInviteService(st)
-	groups := service.NewGroupService(st)
+	auth := service.NewAuthService(st, "test-secret", zaptest.NewLogger(t))
+	invites := service.NewInviteService(st, zaptest.NewLogger(t))
+	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 
 	// Register alice and bob, create a EUR group
 	codeA, err := invites.GenerateInvite(ctx, false)
@@ -50,8 +51,8 @@ func newTestRouterWithFXRates(t *testing.T, rates map[string]float64) (http.Hand
 	svc := handler.Services{
 		Auth:        auth,
 		Groups:      groups,
-		Expenses:    service.NewExpenseService(st),
-		Settlements: service.NewSettlementService(st),
+		Expenses:    service.NewExpenseService(st, zaptest.NewLogger(t)),
+		Settlements: service.NewSettlementService(st, zaptest.NewLogger(t)),
 		Invites:     invites,
 		FXRates:     fxCache,
 	}

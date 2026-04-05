@@ -10,6 +10,7 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 var ErrUnknownMembers = errors.New("one or more members not found")
@@ -32,11 +33,12 @@ type GroupDetail struct {
 }
 
 type GroupService struct {
-	store store.Store
+	store  store.Store
+	logger *zap.Logger
 }
 
-func NewGroupService(s store.Store) *GroupService {
-	return &GroupService{store: s}
+func NewGroupService(s store.Store, logger *zap.Logger) *GroupService {
+	return &GroupService{store: s, logger: logger.Named("service.groups")}
 }
 
 func (gs *GroupService) CreateGroup(ctx context.Context, creatorUsername, name, currency string, otherMembers []string) (string, error) {
