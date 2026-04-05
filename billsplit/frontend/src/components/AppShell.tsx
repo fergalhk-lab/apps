@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link, Outlet, useMatch, useNavigate } from 'react-router-dom'
 import { Sun, Moon, Monitor, Plus } from 'lucide-react'
 import { toast } from 'sonner'
-import { api, clearToken, parseToken, TOKEN_KEY, type Group } from '@/api'
+import { api, getIdentity, type Group } from '@/api'
 import { useTheme } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -20,8 +20,7 @@ export default function AppShell() {
   const match = useMatch('/groups/:groupId')
   const activeGroupId = match?.params.groupId ?? null
 
-  const token = localStorage.getItem(TOKEN_KEY) ?? ''
-  const { username, isAdmin } = parseToken(token)
+  const { username, isAdmin } = getIdentity()
 
   async function loadGroups() {
     try {
@@ -36,9 +35,12 @@ export default function AppShell() {
     loadGroups()
   }, []) // loadGroups is intentionally excluded — initial load only
 
-  function handleLogout() {
-    clearToken()
-    navigate('/login')
+  async function handleLogout() {
+    try {
+      await api.logout()
+    } finally {
+      navigate('/login')
+    }
   }
 
   async function handleGenerateInvite() {
