@@ -83,6 +83,7 @@ func (es *ExpenseService) CancelExpense(ctx context.Context, groupID, cancelledB
 		if err := json.Unmarshal(data, &g); err != nil {
 			return nil, err
 		}
+		// verify the event exists and isn't already reversed
 		found := false
 		for _, e := range g.Events {
 			if e.ID == eventID && e.Type == domain.EventTypeExpense {
@@ -106,7 +107,8 @@ func (es *ExpenseService) CancelExpense(ctx context.Context, groupID, cancelledB
 	})
 }
 
-// ListEvents returns events newest-first with pagination.
+// ListEvents returns events newest-first with pagination. Returns the slice for
+// the requested page and the total count.
 func (es *ExpenseService) ListEvents(ctx context.Context, groupID string, limit, offset int) ([]domain.Event, int, error) {
 	data, _, err := es.store.ReadObject(ctx, groupKey(groupID))
 	if err != nil {
@@ -117,6 +119,7 @@ func (es *ExpenseService) ListEvents(ctx context.Context, groupID string, limit,
 		return nil, 0, err
 	}
 
+	// reverse for newest-first
 	reversed := make([]domain.Event, len(g.Events))
 	for i, e := range g.Events {
 		reversed[len(g.Events)-1-i] = e
