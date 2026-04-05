@@ -44,6 +44,7 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache)
 		}
 
 		amount := req.Amount
+		splits := req.Splits
 		var originalExpense *domain.OriginalExpense
 		if inputCurrency != groupCurrency {
 			rates, err := fxCache.Get(r.Context())
@@ -58,10 +59,20 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache)
 			}
 			originalExpense = &domain.OriginalExpense{Currency: inputCurrency, Amount: req.Amount}
 			amount = converted
+			convertedSplits := make(map[string]float64, len(req.Splits))
+			for k, v := range req.Splits {
+				cs, err := rates.Convert(v, inputCurrency, groupCurrency)
+				if err != nil {
+					writeError(w, http.StatusBadRequest, err.Error())
+					return
+				}
+				convertedSplits[k] = cs
+			}
+			splits = convertedSplits
 		}
 
 		username := middleware.UsernameFromCtx(r)
-		eventID, err := expenses.AddExpense(r.Context(), groupID, username, req.Description, req.PaidBy, amount, req.Splits, originalExpense)
+		eventID, err := expenses.AddExpense(r.Context(), groupID, username, req.Description, req.PaidBy, amount, splits, originalExpense)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, err.Error())
 			return
