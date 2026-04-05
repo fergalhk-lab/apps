@@ -40,7 +40,7 @@ func TestRegister_InvalidCode(t *testing.T) {
 func TestLogin_Success(t *testing.T) {
 	auth, invites := newAuthAndInviteServices(t)
 	registerUser(t, auth, invites, "alice", "password123")
-	token, err := auth.Login(context.Background(), "alice", "password123")
+	token, _, err := auth.Login(context.Background(), "alice", "password123")
 	require.NoError(t, err, "login: %v", err)
 	require.NotEmpty(t, token, "expected non-empty token")
 }
@@ -48,14 +48,14 @@ func TestLogin_Success(t *testing.T) {
 func TestLogin_WrongPassword(t *testing.T) {
 	auth, invites := newAuthAndInviteServices(t)
 	registerUser(t, auth, invites, "alice", "password123")
-	_, err := auth.Login(context.Background(), "alice", "wrong")
+	_, _, err := auth.Login(context.Background(), "alice", "wrong")
 	require.Error(t, err, "expected error for wrong password")
 }
 
 func TestVerifyToken(t *testing.T) {
 	auth, invites := newAuthAndInviteServices(t)
 	registerUser(t, auth, invites, "alice", "password123")
-	token, _ := auth.Login(context.Background(), "alice", "password123")
+	token, _, _ := auth.Login(context.Background(), "alice", "password123")
 	claims, err := auth.VerifyToken(token)
 	require.NoError(t, err, "verify: %v", err)
 	assert.Equal(t, "alice", claims.Username)

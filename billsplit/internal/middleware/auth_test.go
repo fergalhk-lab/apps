@@ -51,7 +51,7 @@ func setupAuth(t *testing.T) (*service.AuthService, string) {
 	code, err := invites.GenerateInvite(context.Background(), false)
 	require.NoError(t, err)
 	require.NoError(t, auth.Register(context.Background(), "alice", "password123", code))
-	token, err := auth.Login(context.Background(), "alice", "password123")
+	token, _, err := auth.Login(context.Background(), "alice", "password123")
 	require.NoError(t, err)
 	return auth, token
 }

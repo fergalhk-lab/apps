@@ -44,14 +44,9 @@ func authLoginHandler(auth *service.AuthService, secureCookie bool) http.Handler
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		token, err := auth.Login(r.Context(), req.Username, req.Password)
+		token, claims, err := auth.Login(r.Context(), req.Username, req.Password)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
-			return
-		}
-		claims, err := auth.VerifyToken(token)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "token error")
 			return
 		}
 		http.SetCookie(w, &http.Cookie{
