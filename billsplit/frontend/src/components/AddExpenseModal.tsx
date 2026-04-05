@@ -32,24 +32,49 @@ export function computeSplits(
   if (isNaN(total) || total <= 0) return null
 
   if (mode === 'equal') {
-    const share = parseFloat((total / members.length).toFixed(2))
-    return Object.fromEntries(members.map(m => [m, share]))
+    const raw = members.map(() => total / members.length)
+    return largestRemainder(members, raw, total)
   }
 
   if (mode === 'shares') {
     const nums = members.map(m => parseFloat(shares[m]) || 0)
     const sum = nums.reduce((a, b) => a + b, 0)
     if (sum === 0) return null
-    return Object.fromEntries(
-      members.map((m, i) => [m, parseFloat(((nums[i] / sum) * total).toFixed(2))])
-    )
+    const raw = nums.map(n => (n / sum) * total)
+    return largestRemainder(members, raw, total)
   }
 
   if (mode === 'percentage') {
-    return null // placeholder — implemented in Task 3
+    return null // implemented in Task 3
   }
 
   return Object.fromEntries(members.map(m => [m, parseFloat(fixed[m]) || 0]))
+}
+
+/**
+ * Distributes `total` across `members` using the largest remainder method.
+ * `rawAmounts[i]` is the ideal (unrounded) amount for members[i].
+ * Guarantees sum(result) === total (to the cent).
+ */
+function largestRemainder(
+  members: string[],
+  rawAmounts: number[],
+  total: number,
+): Record<string, number> {
+  const totalCents = Math.round(total * 100)
+  const floored = rawAmounts.map(r => Math.floor(r * 100))
+  const remainders = rawAmounts.map((r, i) => r * 100 - floored[i])
+
+  let leftover = totalCents - floored.reduce((a, b) => a + b, 0)
+
+  // Sort indices by descending remainder, distribute leftover cents
+  const order = members.map((_, i) => i).sort((a, b) => remainders[b] - remainders[a])
+  const cents = [...floored]
+  for (let i = 0; i < leftover; i++) {
+    cents[order[i]] += 1
+  }
+
+  return Object.fromEntries(members.map((m, i) => [m, cents[i] / 100]))
 }
 
 interface Props {

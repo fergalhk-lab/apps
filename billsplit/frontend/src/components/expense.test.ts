@@ -28,4 +28,19 @@ describe('computeSplits', () => {
     const shares = { Alice: '0', Bob: '0', Carol: '0' }
     expect(computeSplits('shares', 100, members, shares, {}, {})).toBeNull()
   })
+
+  it('equal split: sums exactly to total when not evenly divisible', () => {
+    // $10 / 3 = $3.33 * 3 = $9.99 without largest remainder
+    const result = computeSplits('equal', 10, members, {}, {}, {})!
+    const sum = Object.values(result).reduce((a, b) => a + b, 0)
+    expect(parseFloat(sum.toFixed(2))).toBe(10)
+  })
+
+  it('shares: sums exactly to total when rounding would lose a cent', () => {
+    // Alice:1, Bob:1, Carol:1 of $10 — each gets $3.33 without fix, $9.99 total
+    const shares = { Alice: '1', Bob: '1', Carol: '1' }
+    const result = computeSplits('shares', 10, members, shares, {}, {})!
+    const sum = Object.values(result).reduce((a, b) => a + b, 0)
+    expect(parseFloat(sum.toFixed(2))).toBe(10)
+  })
 })
