@@ -8,13 +8,13 @@ import { Badge } from '@/components/ui/badge'
 import AddExpenseModal from '@/components/AddExpenseModal'
 import AddSettlementModal from '@/components/AddSettlementModal'
 
-type OutletContext = { reloadGroups: () => void }
+type OutletContext = { reloadGroups: () => void; username: string }
 
 const LIMIT = 20
 
 export default function GroupDetail() {
   const { groupId } = useParams<{ groupId: string }>()
-  const { reloadGroups } = useOutletContext<OutletContext>()
+  const { reloadGroups, username } = useOutletContext<OutletContext>()
   const [group, setGroup] = useState<Group | null>(null)
   const [events, setEvents] = useState<GroupEvent[]>([])
   const [total, setTotal] = useState(0)
@@ -227,6 +227,7 @@ export default function GroupDetail() {
       {showExpense && (
         <AddExpenseModal
           group={group}
+          currentUsername={username}
           onClose={() => setShowExpense(false)}
           onSaved={() => { setShowExpense(false); refresh() }}
         />

@@ -49,14 +49,17 @@ export function computeSplits(
 
 interface Props {
   group: Group
+  currentUsername: string
   onClose: () => void
   onSaved: () => void
 }
 
-export default function AddExpenseModal({ group, onClose, onSaved }: Props) {
+export default function AddExpenseModal({ group, currentUsername, onClose, onSaved }: Props) {
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [paidBy, setPaidBy] = useState(group.members[0] ?? '')
+  const [paidBy, setPaidBy] = useState(
+    group.members.includes(currentUsername) ? currentUsername : (group.members[0] ?? '')
+  )
   const [splitMode, setSplitMode] = useState<SplitMode>('equal')
   const [ratios, setRatios] = useState<Record<string, string>>(
     () => Object.fromEntries(group.members.map(m => [m, '1']))
