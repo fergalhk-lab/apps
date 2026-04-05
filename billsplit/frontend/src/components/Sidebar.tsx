@@ -5,6 +5,7 @@ import { type Group } from '@/api'
 import { useTheme } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { groupInitial } from '@/components/sidebar-utils'
 
 interface SidebarProps {
   groups: Group[]
@@ -73,38 +74,70 @@ export default function Sidebar({
 
       {/* Groups list */}
       <div className="flex-1 overflow-y-auto py-2">
-        <p className="px-4 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          Groups
-        </p>
-        {groups.map(g => (
-          <Link
-            key={g.id}
-            to={`/groups/${g.id}`}
-            className={`flex items-center justify-between px-4 py-2 text-sm rounded-md mx-2 my-0.5 transition-colors ${
-              g.id === activeGroupId
-                ? 'bg-primary/10 text-primary font-medium'
-                : 'text-foreground hover:bg-muted'
-            }`}
-          >
-            <span className="truncate">{g.name}</span>
-            <span
-              className={`text-xs font-medium ml-2 flex-shrink-0 ${
-                g.netBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+        {!collapsed && (
+          <p className="px-4 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Groups
+          </p>
+        )}
+
+        {groups.map(g =>
+          collapsed ? (
+            <Link
+              key={g.id}
+              to={`/groups/${g.id}`}
+              title={g.name}
+              className="flex items-center justify-center py-1 mx-1 my-0.5"
+            >
+              <span
+                className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold text-white transition-all ${
+                  g.id === activeGroupId
+                    ? 'bg-primary ring-2 ring-primary ring-offset-1'
+                    : 'bg-muted-foreground/50'
+                }`}
+              >
+                {groupInitial(g.name)}
+              </span>
+            </Link>
+          ) : (
+            <Link
+              key={g.id}
+              to={`/groups/${g.id}`}
+              className={`flex items-center justify-between px-4 py-2 text-sm rounded-md mx-2 my-0.5 transition-colors ${
+                g.id === activeGroupId
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'text-foreground hover:bg-muted'
               }`}
             >
-              {g.netBalance >= 0 ? '+' : ''}{g.netBalance.toFixed(2)}
-            </span>
-          </Link>
-        ))}
+              <span className="truncate">{g.name}</span>
+              <span
+                className={`text-xs font-medium ml-2 flex-shrink-0 ${
+                  g.netBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                }`}
+              >
+                {g.netBalance >= 0 ? '+' : ''}{g.netBalance.toFixed(2)}
+              </span>
+            </Link>
+          )
+        )}
 
         {/* New group button */}
-        <button
-          onClick={onNewGroup}
-          className="flex items-center gap-1 px-4 py-2 mx-2 mt-1 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md w-full transition-colors"
-        >
-          <Plus className="h-3 w-3" />
-          New group
-        </button>
+        {collapsed ? (
+          <button
+            onClick={onNewGroup}
+            title="New group"
+            className="flex items-center justify-center py-1 mx-1 my-0.5 w-full text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        ) : (
+          <button
+            onClick={onNewGroup}
+            className="flex items-center gap-1 px-4 py-2 mx-2 mt-1 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md w-full transition-colors"
+          >
+            <Plus className="h-3 w-3" />
+            New group
+          </button>
+        )}
       </div>
 
       <Separator />
