@@ -3,12 +3,17 @@ package service_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 func setupGroupTest(t *testing.T) (*service.AuthService, *service.InviteService, *service.GroupService) {
@@ -125,4 +130,36 @@ func TestGetGroup_IncludesSettlements(t *testing.T) {
 	assert.Equal(t, "bob", s.From, "unexpected settlement From: %+v", s)
 	assert.Equal(t, "alice", s.To, "unexpected settlement To: %+v", s)
 	assert.Equal(t, float64(50), s.Amount, "unexpected settlement Amount: %+v", s)
+}
+
+// TestListGroups_WarnsOnMissingGroup verifies that ListGroups emits a Warn log
+// when a group ID present in users.json has no corresponding group object in S3.
+func TestListGroups_WarnsOnMissingGroup(t *testing.T) {
+	core, logs := observer.New(zapcore.WarnLevel)
+	logger := zap.New(core)
+
+	st := newTestStore(t)
+	ctx := context.Background()
+
+	// Write a users.json where alice holds a group ID that has no group object in S3.
+	ud := domain.UsersData{
+		Users: []domain.User{
+			{Username: "alice", PasswordHash: "x", GroupIDs: []string{"nonexistent-id"}, IsAdmin: false},
+		},
+		Invites: []domain.Invite{},
+	}
+	data, err := json.Marshal(ud)
+	require.NoError(t, err)
+	require.NoError(t, st.ForceWriteObject(ctx, "users.json", data))
+
+	groups := service.NewGroupService(st, logger)
+	list, err := groups.ListGroups(ctx, "alice")
+	require.NoError(t, err, "ListGroups should not return an error when a group is missing")
+	require.Empty(t, list, "missing group should be skipped, not returned")
+
+	require.Equal(t, 1, logs.Len(), "expected exactly 1 warn log for the skipped group")
+	entry := logs.All()[0]
+	require.Equal(t, "group not found, skipping", entry.Message)
+	require.Equal(t, "nonexistent-id", entry.ContextMap()["group_id"],
+		"log should identify the missing group by ID")
 }

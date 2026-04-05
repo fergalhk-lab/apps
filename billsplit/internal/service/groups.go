@@ -123,7 +123,8 @@ func (gs *GroupService) ListGroups(ctx context.Context, username string) ([]Grou
 	for _, id := range groupIDs {
 		g, err := gs.readGroup(ctx, id)
 		if err != nil {
-			continue // skip missing groups
+			gs.logger.Warn("group not found, skipping", zap.String("group_id", id))
+			continue
 		}
 		balances := domain.ComputeBalances(g)
 		summaries = append(summaries, GroupSummary{
