@@ -2,6 +2,8 @@ package main
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func baseConfig() Config {
@@ -77,4 +79,37 @@ func TestBuildMatrix_MultipleApps(t *testing.T) {
 	if m.Include[1].Image != "123456789.dkr.ecr.eu-west-1.amazonaws.com/apps/beta" {
 		t.Errorf("beta image: got %q, want %q", m.Include[1].Image, "123456789.dkr.ecr.eu-west-1.amazonaws.com/apps/beta")
 	}
+}
+
+func TestBuildMatrix_ClusterField(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Apps = []App{
+		{
+			Name:       "myapp",
+			Path:       "myapp/",
+			Deployment: Deployment{Cluster: "mgmt"},
+			Tests:      []Test{{Name: "go", Run: "go test ./..."}},
+		},
+	}
+
+	m := buildMatrix(cfg)
+
+	require.Len(t, m.Include, 1)
+	require.Equal(t, "mgmt", m.Include[0].Cluster)
+}
+
+func TestBuildMatrix_NoDeployment(t *testing.T) {
+	cfg := baseConfig()
+	cfg.Apps = []App{
+		{
+			Name:  "myapp",
+			Path:  "myapp/",
+			Tests: []Test{{Name: "go", Run: "go test ./..."}},
+		},
+	}
+
+	m := buildMatrix(cfg)
+
+	require.Len(t, m.Include, 1)
+	require.Equal(t, "", m.Include[0].Cluster)
 }

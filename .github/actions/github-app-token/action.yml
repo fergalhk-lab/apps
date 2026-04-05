@@ -1,0 +1,54 @@
+name: Get GitHub App Token
+description: Retrieve a GitHub App installation token via AWS Secrets Manager
+
+inputs:
+  repositories:
+    description: Comma-separated list of repositories to grant access to
+    required: true
+
+outputs:
+  token:
+    description: GitHub App installation token
+    value: ${{ steps.app-token.outputs.token }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::740994137039:role/gh-ecr-fergalhk-lab-apps
+        aws-region: eu-west-1
+
+    - name: Get GitHub App credentials
+      id: app-creds
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        SECRET=$(aws secretsmanager get-secret-value \
+          --secret-id "apikeys/github/org-argocd" \
+          --query 'SecretString' \
+          --output text)
+
+        APP_ID=$(echo "$SECRET" | jq -r '.app_id')
+        echo "::add-mask::$APP_ID"
+        echo "app_id=$APP_ID" >> "$GITHUB_OUTPUT"
+
+        PRIVATE_KEY=$(echo "$SECRET" | jq -r '.private_key')
+        while IFS= read -r line; do
+          echo "::add-mask::$line"
+        done <<< "$PRIVATE_KEY"
+        {
+          echo "private_key<<EOF"
+          echo "$PRIVATE_KEY"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Generate GitHub App token
+      id: app-token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ steps.app-creds.outputs.app_id }}
+        private-key: ${{ steps.app-creds.outputs.private_key }}
+        repositories: ${{ inputs.repositories }}
