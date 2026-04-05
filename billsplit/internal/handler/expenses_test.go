@@ -56,7 +56,7 @@ func newTestRouterWithFXRates(t *testing.T, rates map[string]float64) (http.Hand
 		Invites:     invites,
 		FXRates:     fxCache,
 	}
-	return handler.NewRouter(svc, false), groupID
+	return handler.NewRouter(svc, zaptest.NewLogger(t), false), groupID
 }
 
 func loginAs(t *testing.T, router http.Handler, username string) *http.Cookie {

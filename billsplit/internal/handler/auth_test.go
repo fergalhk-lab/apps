@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/fergalhk-lab/apps/billsplit/internal/fxrates"
 	"github.com/fergalhk-lab/apps/billsplit/internal/handler"
 	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
@@ -35,8 +36,9 @@ func newTestRouter(t *testing.T) http.Handler {
 		Expenses:    service.NewExpenseService(st, zaptest.NewLogger(t)),
 		Settlements: service.NewSettlementService(st, zaptest.NewLogger(t)),
 		Invites:     invites,
+		FXRates:     fxrates.NewCache(st, zaptest.NewLogger(t)),
 	}
-	return handler.NewRouter(svc, false)
+	return handler.NewRouter(svc, zaptest.NewLogger(t), false)
 }
 
 func sessionCookie(rr *httptest.ResponseRecorder) *http.Cookie {

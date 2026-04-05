@@ -59,7 +59,7 @@ func main() {
 		FXRates:     fxrates.NewCache(store, logger),
 	}
 
-	apiRouter := handler.NewRouter(svc, cfg.SecureCookie)
+	apiRouter := handler.NewRouter(svc, logger, cfg.SecureCookie)
 
 	distFS, err := fs.Sub(frontendDist, "frontend/dist")
 	if err != nil {

@@ -11,9 +11,10 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
+	"go.uber.org/zap"
 )
 
-func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache) http.HandlerFunc {
+func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		var req struct {
@@ -34,6 +35,7 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache)
 				writeError(w, http.StatusNotFound, "group not found")
 				return
 			}
+			logger.Error("read group currency failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to read group")
 			return
 		}
@@ -49,6 +51,7 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache)
 		if inputCurrency != groupCurrency {
 			rates, err := fxCache.Get(r.Context())
 			if err != nil {
+				logger.Error("exchange rates unavailable", zap.Error(err))
 				writeError(w, http.StatusServiceUnavailable, "exchange rates unavailable")
 				return
 			}
@@ -81,7 +84,7 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache)
 	}
 }
 
-func listEventsHandler(expenses *service.ExpenseService) http.HandlerFunc {
+func listEventsHandler(expenses *service.ExpenseService, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -91,6 +94,7 @@ func listEventsHandler(expenses *service.ExpenseService) http.HandlerFunc {
 		}
 		events, total, err := expenses.ListEvents(r.Context(), groupID, limit, offset)
 		if err != nil {
+			logger.Error("list events failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to list events")
 			return
 		}
