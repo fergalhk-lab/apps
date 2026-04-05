@@ -11,6 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { X } from 'lucide-react'
 
 interface Props {
@@ -22,6 +29,7 @@ interface Props {
 export default function CreateGroupDialog({ currentUsername, onClose, onCreated }: Props) {
   const [name, setName] = useState('')
   const [currency, setCurrency] = useState('GBP')
+  const [currencies, setCurrencies] = useState<string[]>([])
   const [availableUsers, setAvailableUsers] = useState<UserSummary[]>([])
   const [selectedMembers, setSelectedMembers] = useState<UserSummary[]>([])
   const [error, setError] = useState('')
@@ -31,6 +39,12 @@ export default function CreateGroupDialog({ currentUsername, onClose, onCreated 
       .then(res => setAvailableUsers((res.users ?? []).filter(u => u.id !== currentUsername)))
       .catch(err => setError(err instanceof Error ? err.message : 'Failed to load users'))
   }, [currentUsername])
+
+  useEffect(() => {
+    api.getCurrencies()
+      .then(res => setCurrencies(Object.keys(res.rates).sort()))
+      .catch(() => {/* silently fall back to typed input */})
+  }, [])
 
   function toggleMember(user: UserSummary) {
     setSelectedMembers(prev =>
@@ -73,12 +87,25 @@ export default function CreateGroupDialog({ currentUsername, onClose, onCreated 
           </div>
           <div className="space-y-2">
             <Label>Currency</Label>
-            <Input
-              placeholder="GBP"
-              value={currency}
-              onChange={e => setCurrency(e.target.value)}
-              required
-            />
+            {currencies.length > 0 ? (
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencies.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                placeholder="GBP"
+                value={currency}
+                onChange={e => setCurrency(e.target.value)}
+                required
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label>Members</Label>
