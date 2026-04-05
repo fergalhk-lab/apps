@@ -1,5 +1,10 @@
 name: billsplit
 
+generatedSecrets:
+  - name: jwt-signing
+    length: 1024
+    symbols: false
+
 services:
   - name: billsplit
     image: &image
@@ -16,9 +21,7 @@ services:
       - name: S3_BUCKET
         rawValue: "fergalhk-billsplit-live"
       - name: JWT_SECRET
-        fromSecret:
-          name: auth
-          key: jwt-secret
+        fromGeneratedSecret: jwt-signing
     ingress:
       port: 8080
       public:
