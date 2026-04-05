@@ -10,6 +10,7 @@ import (
 )
 
 func RecoverPanic(logger *zap.Logger) func(http.Handler) http.Handler {
+	logger = logger.Named("middleware.recovery")
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
