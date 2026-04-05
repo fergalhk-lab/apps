@@ -48,7 +48,7 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache)
 		if inputCurrency != groupCurrency {
 			rates, err := fxCache.Get(r.Context())
 			if err != nil {
-				writeError(w, http.StatusBadRequest, "exchange rates unavailable")
+				writeError(w, http.StatusServiceUnavailable, "exchange rates unavailable")
 				return
 			}
 			converted, err := rates.Convert(req.Amount, inputCurrency, groupCurrency)
