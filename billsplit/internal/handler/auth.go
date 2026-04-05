@@ -34,7 +34,7 @@ func authRegisterHandler(auth *service.AuthService) http.HandlerFunc {
 	}
 }
 
-func authLoginHandler(auth *service.AuthService) http.HandlerFunc {
+func authLoginHandler(auth *service.AuthService, secureCookie bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Username string `json:"username"`
@@ -49,7 +49,24 @@ func authLoginHandler(auth *service.AuthService) http.HandlerFunc {
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]string{"token": token})
+		claims, err := auth.VerifyToken(token)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "token error")
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session",
+			Value:    token,
+			HttpOnly: true,
+			SameSite: http.SameSiteStrictMode,
+			Secure:   secureCookie,
+			Path:     "/",
+			MaxAge:   86400,
+		})
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"username": claims.Username,
+			"isAdmin":  claims.IsAdmin,
+		})
 	}
 }
 

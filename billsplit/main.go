@@ -69,7 +69,7 @@ func main() {
 		Invites:     service.NewInviteService(store),
 	}
 
-	apiRouter := handler.NewRouter(svc)
+	apiRouter := handler.NewRouter(svc, cfg.SecureCookie)
 
 	distFS, err := fs.Sub(frontendDist, "frontend/dist")
 	if err != nil {
