@@ -45,7 +45,11 @@ export function computeSplits(
   }
 
   if (mode === 'percentage') {
-    return null // implemented in Task 3
+    const pcts = members.map(m => parseFloat(percentages[m]) || 0)
+    const pctSum = pcts.reduce((a, b) => a + b, 0)
+    if (Math.abs(pctSum - 100) > 0.01) return null
+    const raw = pcts.map(p => (p / 100) * total)
+    return largestRemainder(members, raw, total)
   }
 
   return Object.fromEntries(members.map(m => [m, parseFloat(fixed[m]) || 0]))
@@ -114,6 +118,10 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
   const splits = computeSplits(splitMode, total, group.members, shares, fixed, percentages)
   const splitsTotal = splits ? Object.values(splits).reduce((a, b) => a + b, 0) : 0
   const splitsMismatch = splitMode === 'fixed' && amount && splits && Math.abs(splitsTotal - total) > 0.01
+  const percentageSum = splitMode === 'percentage'
+    ? group.members.reduce((acc, m) => acc + (parseFloat(percentages[m]) || 0), 0)
+    : 100
+  const percentageMismatch = splitMode === 'percentage' && amount && Math.abs(percentageSum - 100) > 0.01
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -121,6 +129,10 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
     if (!splits) { setError('Invalid split configuration'); return }
     if (splitsMismatch) {
       setError(`Splits sum to ${splitsTotal.toFixed(2)} but total is ${total.toFixed(2)}`)
+      return
+    }
+    if (percentageMismatch) {
+      setError(`Percentages sum to ${percentageSum.toFixed(2)}% but must equal 100%`)
       return
     }
     try {
@@ -208,6 +220,31 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
                   />
                 </div>
               ))}
+            </div>
+          )}
+
+          {splitMode === 'percentage' && (
+            <div className="space-y-2">
+              {group.members.map(m => (
+                <div key={m} className="flex items-center gap-3">
+                  <Label className="w-24 truncate">{m}</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      className="w-24"
+                      value={percentages[m]}
+                      onChange={e => setPercentages({ ...percentages, [m]: e.target.value })}
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                </div>
+              ))}
+              <p className={`text-xs ${percentageMismatch ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
+                Total: {percentageSum.toFixed(2)}% of 100%
+              </p>
             </div>
           )}
 

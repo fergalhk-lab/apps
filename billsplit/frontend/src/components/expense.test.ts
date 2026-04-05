@@ -42,4 +42,28 @@ describe('computeSplits', () => {
     const sum = Object.values(result).reduce((a, b) => a + b, 0)
     expect(parseFloat(sum.toFixed(2))).toBe(10)
   })
+
+  it('splits by percentage', () => {
+    const pcts = { Alice: '50', Bob: '30', Carol: '20' }
+    const result = computeSplits('percentage', 100, members, {}, {}, pcts)
+    expect(result).toEqual({ Alice: 50, Bob: 30, Carol: 20 })
+  })
+
+  it('percentage: sums exactly to total when percentages cause rounding', () => {
+    // 33.33% each — would be $3.333 each without largest remainder
+    const pcts = { Alice: '33.33', Bob: '33.33', Carol: '33.34' }
+    const result = computeSplits('percentage', 10, members, {}, {}, pcts)!
+    const sum = Object.values(result).reduce((a, b) => a + b, 0)
+    expect(parseFloat(sum.toFixed(2))).toBe(10)
+  })
+
+  it('percentage: returns null when percentages do not sum to 100', () => {
+    const pcts = { Alice: '40', Bob: '40', Carol: '10' }
+    expect(computeSplits('percentage', 100, members, {}, {}, pcts)).toBeNull()
+  })
+
+  it('percentage: returns null when total is zero', () => {
+    const pcts = { Alice: '33.33', Bob: '33.33', Carol: '33.34' }
+    expect(computeSplits('percentage', 0, members, {}, {}, pcts)).toBeNull()
+  })
 })
