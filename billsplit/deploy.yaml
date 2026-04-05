@@ -11,6 +11,8 @@ services:
     command: ["/usr/local/bin/billsplit"]
     iamRoleARN: "arn:aws:iam::740994137039:role/k8s-mgmt-billsplit"
     env: &env
+      - name: AWS_REGION
+        rawValue: eu-west-1
       - name: S3_BUCKET
         rawValue: "fergalhk-billsplit-live"
       - name: JWT_SECRET
