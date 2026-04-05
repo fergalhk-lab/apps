@@ -18,15 +18,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-type SplitMode = 'equal' | 'ratio' | 'fixed'
+type SplitMode = 'equal' | 'shares' | 'fixed' | 'percentage'
 
 // Exported for testing
 export function computeSplits(
   mode: SplitMode,
   total: number,
   members: string[],
-  ratios: Record<string, string>,
+  shares: Record<string, string>,
   fixed: Record<string, string>,
+  percentages: Record<string, string>,
 ): Record<string, number> | null {
   if (isNaN(total) || total <= 0) return null
 
@@ -35,13 +36,17 @@ export function computeSplits(
     return Object.fromEntries(members.map(m => [m, share]))
   }
 
-  if (mode === 'ratio') {
-    const nums = members.map(m => parseFloat(ratios[m]) || 0)
+  if (mode === 'shares') {
+    const nums = members.map(m => parseFloat(shares[m]) || 0)
     const sum = nums.reduce((a, b) => a + b, 0)
     if (sum === 0) return null
     return Object.fromEntries(
       members.map((m, i) => [m, parseFloat(((nums[i] / sum) * total).toFixed(2))])
     )
+  }
+
+  if (mode === 'percentage') {
+    return null // placeholder — implemented in Task 3
   }
 
   return Object.fromEntries(members.map(m => [m, parseFloat(fixed[m]) || 0]))
@@ -63,11 +68,14 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
     group.members.includes(currentUsername) ? currentUsername : (group.members[0] ?? '')
   )
   const [splitMode, setSplitMode] = useState<SplitMode>('equal')
-  const [ratios, setRatios] = useState<Record<string, string>>(
+  const [shares, setShares] = useState<Record<string, string>>(
     () => Object.fromEntries(group.members.map(m => [m, '1']))
   )
   const [fixed, setFixed] = useState<Record<string, string>>(
     () => Object.fromEntries(group.members.map(m => [m, '0']))
+  )
+  const [percentages, setPercentages] = useState<Record<string, string>>(
+    () => Object.fromEntries(group.members.map(m => [m, (100 / group.members.length).toFixed(2)]))
   )
   const [error, setError] = useState('')
 
@@ -78,7 +86,7 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
   }, [])
 
   const total = parseFloat(amount)
-  const splits = computeSplits(splitMode, total, group.members, ratios, fixed)
+  const splits = computeSplits(splitMode, total, group.members, shares, fixed, percentages)
   const splitsTotal = splits ? Object.values(splits).reduce((a, b) => a + b, 0) : 0
   const splitsMismatch = splitMode === 'fixed' && amount && splits && Math.abs(splitsTotal - total) > 0.01
 
@@ -153,13 +161,14 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="equal">Equal split</SelectItem>
-                <SelectItem value="ratio">By ratio</SelectItem>
+                <SelectItem value="shares">By shares</SelectItem>
+                <SelectItem value="percentage">By percentage</SelectItem>
                 <SelectItem value="fixed">Fixed amounts</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {splitMode === 'ratio' && (
+          {splitMode === 'shares' && (
             <div className="space-y-2">
               {group.members.map(m => (
                 <div key={m} className="flex items-center gap-3">
@@ -169,8 +178,8 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
                     step="0.1"
                     min="0"
                     className="w-24"
-                    value={ratios[m]}
-                    onChange={e => setRatios({ ...ratios, [m]: e.target.value })}
+                    value={shares[m]}
+                    onChange={e => setShares({ ...shares, [m]: e.target.value })}
                   />
                 </div>
               ))}
