@@ -12,7 +12,9 @@ export default function AppShell() {
   const [showInvitePanel, setShowInvitePanel] = useState(false)
   const [inviteIsAdmin, setInviteIsAdmin] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('sidebar-collapsed') === 'true'
+  )
   const navigate = useNavigate()
   const match = useMatch('/groups/:groupId')
   const activeGroupId = match?.params.groupId ?? null
@@ -61,7 +63,11 @@ export default function AppShell() {
         username={username}
         isAdmin={isAdmin}
         collapsed={collapsed}
-        onToggle={() => setCollapsed(v => !v)}
+        onToggle={() => setCollapsed(v => {
+          const next = !v
+          localStorage.setItem('sidebar-collapsed', String(next))
+          return next
+        })}
         onNewGroup={() => setShowCreateGroup(true)}
         onLogout={handleLogout}
         showInvitePanel={showInvitePanel}

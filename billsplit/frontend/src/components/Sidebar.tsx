@@ -1,6 +1,6 @@
 // frontend/src/components/Sidebar.tsx
 import { Link } from 'react-router-dom'
-import { Sun, Moon, Monitor, Plus } from 'lucide-react'
+import { Sun, Moon, Monitor, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { type Group } from '@/api'
 import { useTheme } from '@/components/ThemeProvider'
 import { Button } from '@/components/ui/button'
@@ -52,13 +52,22 @@ export default function Sidebar({
   const ThemeIcon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Monitor
 
   return (
-    <aside className="w-56 flex-shrink-0 border-r border-border flex flex-col">
-      {/* Logo */}
-      <div className="px-4 py-4">
-        <span className="font-bold text-lg">BillSplit</span>
+    <aside
+      className={`flex-shrink-0 border-r border-border flex flex-col transition-all duration-200 ${
+        collapsed ? 'w-11' : 'w-56'
+      }`}
+    >
+      {/* Toggle + Logo */}
+      <div className={`flex items-center py-3 ${collapsed ? 'justify-center px-0' : 'justify-between px-4'}`}>
+        {!collapsed && <span className="font-bold text-lg">BillSplit</span>}
+        <button
+          onClick={onToggle}
+          className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+        </button>
       </div>
-
-      <Separator />
 
       {/* Groups list */}
       <div className="flex-1 overflow-y-auto py-2">
