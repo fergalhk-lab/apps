@@ -53,6 +53,9 @@ func NewRouter(svc Services, logger *zap.Logger, secureCookie bool) http.Handler
 	// Leave group
 	mux.Handle("DELETE /api/groups/{id}/members/{username}", middleware.RequireAuth(svc.Auth, http.HandlerFunc(leaveGroupHandler(svc.Groups))))
 
+	// Delete group
+	mux.Handle("DELETE /api/groups/{id}", middleware.RequireAuth(svc.Auth, http.HandlerFunc(deleteGroupHandler(svc.Groups, logger))))
+
 	// Admin
 	mux.Handle("POST /api/admin/invites", middleware.RequireAdmin(svc.Auth, http.HandlerFunc(generateInviteHandler(svc.Invites, logger))))
 
