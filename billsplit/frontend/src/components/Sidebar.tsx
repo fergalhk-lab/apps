@@ -142,7 +142,7 @@ export default function Sidebar({
         )}
       </div>
 
-      <Separator />
+      {isAdmin && !collapsed && <Separator />}
 
       {/* Admin invite panel — hidden when collapsed */}
       {isAdmin && !collapsed && (
@@ -220,6 +220,7 @@ export default function Sidebar({
             onClick={cycleTheme}
             className="text-muted-foreground hover:text-foreground transition-colors ml-2 flex-shrink-0"
             title={`Theme: ${theme}`}
+            aria-label={`Switch theme (current: ${theme})`}
           >
             <ThemeIcon className="h-4 w-4" />
           </button>
