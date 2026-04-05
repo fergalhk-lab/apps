@@ -9,6 +9,7 @@ import (
 	"github.com/fergalhk-lab/apps/billsplit/internal/fxrates"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap/zaptest"
 )
 
 // fakeStore is a minimal in-memory store.Store for testing — no MinIO needed.
@@ -45,7 +46,7 @@ func TestCache_FetchesOnFirstCall(t *testing.T) {
 		}),
 	}}
 
-	c := fxrates.NewCache(fs)
+	c := fxrates.NewCache(fs, zaptest.NewLogger(t))
 	rates, err := c.Get(context.Background())
 	require.NoError(t, err)
 	require.Equal(t, "USD", rates.Base)
@@ -61,7 +62,7 @@ func TestCache_ReturnsCachedOnSubsequentCall(t *testing.T) {
 		}),
 	}}
 
-	c := fxrates.NewCache(fs)
+	c := fxrates.NewCache(fs, zaptest.NewLogger(t))
 	first, _ := c.Get(context.Background())
 	second, err := c.Get(context.Background())
 	require.NoError(t, err)
@@ -72,7 +73,7 @@ func TestCache_ReturnsCachedOnSubsequentCall(t *testing.T) {
 func TestCache_ErrorWhenRatesAbsent(t *testing.T) {
 	fs := &fakeStore{objects: map[string][]byte{}} // no fxrates key stored
 
-	c := fxrates.NewCache(fs)
+	c := fxrates.NewCache(fs, zaptest.NewLogger(t))
 	_, err := c.Get(context.Background())
 	require.Error(t, err)
 }
