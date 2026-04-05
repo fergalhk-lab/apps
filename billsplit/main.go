@@ -56,7 +56,7 @@ func main() {
 		Expenses:    service.NewExpenseService(store, logger),
 		Settlements: service.NewSettlementService(store, logger),
 		Invites:     service.NewInviteService(store, logger),
-		FXRates:     fxrates.NewCache(store),
+		FXRates:     fxrates.NewCache(store, logger),
 	}
 
 	apiRouter := handler.NewRouter(svc, cfg.SecureCookie)

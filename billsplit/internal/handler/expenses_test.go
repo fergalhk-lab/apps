@@ -47,7 +47,7 @@ func newTestRouterWithFXRates(t *testing.T, rates map[string]float64) (http.Hand
 	require.NoError(t, err)
 	require.NoError(t, st.ForceWriteObject(ctx, fxrates.S3Key, raw))
 
-	fxCache := fxrates.NewCache(st)
+	fxCache := fxrates.NewCache(st, zaptest.NewLogger(t))
 	svc := handler.Services{
 		Auth:        auth,
 		Groups:      groups,
