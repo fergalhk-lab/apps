@@ -167,6 +167,11 @@ export default function GroupDetail() {
                   </div>
                   {expandedId === e.id && (
                     <div className="mt-3 pt-3 border-t border-border space-y-1">
+                      {e.originalExpense && (
+                        <p className="text-xs text-muted-foreground">
+                          Original: {e.originalExpense.currency} {e.originalExpense.amount.toFixed(2)}
+                        </p>
+                      )}
                       {Object.entries(e.splits ?? {})
                         .sort(([a], [b]) => a.localeCompare(b))
                         .map(([member, amount]) => (

@@ -61,6 +61,11 @@ export type Group = {
 
 export type EventType = 'expense' | 'settlement' | 'reversal'
 
+export type OriginalExpense = {
+  currency: string
+  amount: number
+}
+
 export type GroupEvent = {
   id: string
   type: EventType
@@ -72,6 +77,7 @@ export type GroupEvent = {
   splits?: Record<string, number>
   createdAt: string
   reversedEventId?: string
+  originalExpense?: OriginalExpense
 }
 
 export type EventsResponse = {
