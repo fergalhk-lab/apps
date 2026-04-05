@@ -109,28 +109,20 @@ func TestGetGroup_IncludesSettlements(t *testing.T) {
 	_ = auth.Register(ctx, "bob", "pw", codeB)
 
 	gid, err := groups.CreateGroup(ctx, "alice", "Trip", "EUR", []string{"bob"})
-	if err != nil {
-		t.Fatalf("create group: %v", err)
-	}
+	require.NoError(t, err, "create group")
 
 	// alice pays 100, split evenly → alice net +50, bob net -50
 	_, err = expenses.AddExpense(ctx, gid, "alice", "Dinner", "alice", 100.0, map[string]float64{
 		"alice": 50.0,
 		"bob":   50.0,
 	}, nil)
-	if err != nil {
-		t.Fatalf("add expense: %v", err)
-	}
+	require.NoError(t, err, "add expense")
 
 	detail, err := groups.GetGroup(ctx, gid)
-	if err != nil {
-		t.Fatalf("get group: %v", err)
-	}
-	if len(detail.Settlements) != 1 {
-		t.Fatalf("want 1 settlement, got %d: %v", len(detail.Settlements), detail.Settlements)
-	}
+	require.NoError(t, err, "get group")
+	require.Len(t, detail.Settlements, 1, "want 1 settlement, got %d: %v", len(detail.Settlements), detail.Settlements)
 	s := detail.Settlements[0]
-	if s.From != "bob" || s.To != "alice" || s.Amount != 50 {
-		t.Errorf("unexpected settlement: %+v", s)
-	}
+	assert.Equal(t, "bob", s.From, "unexpected settlement From: %+v", s)
+	assert.Equal(t, "alice", s.To, "unexpected settlement To: %+v", s)
+	assert.Equal(t, float64(50), s.Amount, "unexpected settlement Amount: %+v", s)
 }
