@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
 )
@@ -29,13 +28,12 @@ func IsAdminFromCtx(r *http.Request) bool {
 
 func RequireAuth(auth *service.AuthService, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		header := r.Header.Get("Authorization")
-		token, ok := strings.CutPrefix(header, "Bearer ")
-		if !ok || token == "" {
-			writeError(w, http.StatusUnauthorized, "missing or invalid Authorization header")
+		cookie, err := r.Cookie("session")
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "missing session cookie")
 			return
 		}
-		claims, err := auth.VerifyToken(token)
+		claims, err := auth.VerifyToken(cookie.Value)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "invalid token")
 			return
