@@ -81,7 +81,7 @@ export default function AppShell() {
       />
 
       <main className="flex-1 overflow-y-auto">
-        <Outlet context={{ reloadGroups: loadGroups }} />
+        <Outlet context={{ reloadGroups: loadGroups, username }} />
       </main>
 
       {showCreateGroup && (
