@@ -18,33 +18,67 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-type SplitMode = 'equal' | 'ratio' | 'fixed'
+type SplitMode = 'equal' | 'shares' | 'fixed' | 'percentage'
 
 // Exported for testing
 export function computeSplits(
   mode: SplitMode,
   total: number,
   members: string[],
-  ratios: Record<string, string>,
+  shares: Record<string, string>,
   fixed: Record<string, string>,
+  percentages: Record<string, string>,
 ): Record<string, number> | null {
   if (isNaN(total) || total <= 0) return null
 
   if (mode === 'equal') {
-    const share = parseFloat((total / members.length).toFixed(2))
-    return Object.fromEntries(members.map(m => [m, share]))
+    const raw = members.map(() => total / members.length)
+    return largestRemainder(members, raw, total)
   }
 
-  if (mode === 'ratio') {
-    const nums = members.map(m => parseFloat(ratios[m]) || 0)
+  if (mode === 'shares') {
+    const nums = members.map(m => parseFloat(shares[m]) || 0)
     const sum = nums.reduce((a, b) => a + b, 0)
     if (sum === 0) return null
-    return Object.fromEntries(
-      members.map((m, i) => [m, parseFloat(((nums[i] / sum) * total).toFixed(2))])
-    )
+    const raw = nums.map(n => (n / sum) * total)
+    return largestRemainder(members, raw, total)
+  }
+
+  if (mode === 'percentage') {
+    const pcts = members.map(m => parseFloat(percentages[m]) || 0)
+    const pctSum = pcts.reduce((a, b) => a + b, 0)
+    if (Math.abs(pctSum - 100) > 0.01) return null
+    const raw = pcts.map(p => (p / 100) * total)
+    return largestRemainder(members, raw, total)
   }
 
   return Object.fromEntries(members.map(m => [m, parseFloat(fixed[m]) || 0]))
+}
+
+/**
+ * Distributes `total` across `members` using the largest remainder method.
+ * `rawAmounts[i]` is the ideal (unrounded) amount for members[i].
+ * Guarantees sum(result) === total (to the cent).
+ */
+function largestRemainder(
+  members: string[],
+  rawAmounts: number[],
+  total: number,
+): Record<string, number> {
+  const totalCents = Math.round(total * 100)
+  const floored = rawAmounts.map(r => Math.floor(r * 100))
+  const remainders = rawAmounts.map((r, i) => r * 100 - floored[i])
+
+  const leftover = totalCents - floored.reduce((a, b) => a + b, 0)
+
+  // Sort indices by descending remainder, distribute leftover cents
+  const order = members.map((_, i) => i).sort((a, b) => remainders[b] - remainders[a])
+  const cents = [...floored]
+  for (let i = 0; i < leftover; i++) {
+    cents[order[i]] += 1
+  }
+
+  return Object.fromEntries(members.map((m, i) => [m, cents[i] / 100]))
 }
 
 interface Props {
@@ -63,11 +97,14 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
     group.members.includes(currentUsername) ? currentUsername : (group.members[0] ?? '')
   )
   const [splitMode, setSplitMode] = useState<SplitMode>('equal')
-  const [ratios, setRatios] = useState<Record<string, string>>(
+  const [shares, setShares] = useState<Record<string, string>>(
     () => Object.fromEntries(group.members.map(m => [m, '1']))
   )
   const [fixed, setFixed] = useState<Record<string, string>>(
     () => Object.fromEntries(group.members.map(m => [m, '0']))
+  )
+  const [percentages, setPercentages] = useState<Record<string, string>>(
+    () => Object.fromEntries(group.members.map(m => [m, (100 / group.members.length).toFixed(2)]))
   )
   const [error, setError] = useState('')
 
@@ -78,13 +115,21 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
   }, [])
 
   const total = parseFloat(amount)
-  const splits = computeSplits(splitMode, total, group.members, ratios, fixed)
+  const splits = computeSplits(splitMode, total, group.members, shares, fixed, percentages)
   const splitsTotal = splits ? Object.values(splits).reduce((a, b) => a + b, 0) : 0
   const splitsMismatch = splitMode === 'fixed' && amount && splits && Math.abs(splitsTotal - total) > 0.01
+  const percentageSum = splitMode === 'percentage'
+    ? group.members.reduce((acc, m) => acc + (parseFloat(percentages[m]) || 0), 0)
+    : 100
+  const percentageMismatch = splitMode === 'percentage' && amount && Math.abs(percentageSum - 100) > 0.01
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    if (percentageMismatch) {
+      setError(`Percentages sum to ${percentageSum.toFixed(2)}% but must equal 100%`)
+      return
+    }
     if (!splits) { setError('Invalid split configuration'); return }
     if (splitsMismatch) {
       setError(`Splits sum to ${splitsTotal.toFixed(2)} but total is ${total.toFixed(2)}`)
@@ -153,13 +198,14 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="equal">Equal split</SelectItem>
-                <SelectItem value="ratio">By ratio</SelectItem>
+                <SelectItem value="shares">By shares</SelectItem>
+                <SelectItem value="percentage">By percentage</SelectItem>
                 <SelectItem value="fixed">Fixed amounts</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {splitMode === 'ratio' && (
+          {splitMode === 'shares' && (
             <div className="space-y-2">
               {group.members.map(m => (
                 <div key={m} className="flex items-center gap-3">
@@ -169,11 +215,38 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
                     step="0.1"
                     min="0"
                     className="w-24"
-                    value={ratios[m]}
-                    onChange={e => setRatios({ ...ratios, [m]: e.target.value })}
+                    value={shares[m]}
+                    onChange={e => setShares({ ...shares, [m]: e.target.value })}
                   />
                 </div>
               ))}
+            </div>
+          )}
+
+          {splitMode === 'percentage' && (
+            <div className="space-y-2">
+              {group.members.map(m => (
+                <div key={m} className="flex items-center gap-3">
+                  <Label className="w-24 truncate">{m}</Label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      className="w-24"
+                      value={percentages[m]}
+                      onChange={e => setPercentages({ ...percentages, [m]: e.target.value })}
+                    />
+                    <span className="text-sm text-muted-foreground">%</span>
+                  </div>
+                </div>
+              ))}
+              {amount && (
+                <p className={`text-xs ${percentageMismatch ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
+                  Total: {percentageSum.toFixed(2)}% of 100%
+                </p>
+              )}
             </div>
           )}
 
