@@ -64,6 +64,8 @@ export default function Sidebar({
           onClick={onToggle}
           className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded"
           title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </button>
