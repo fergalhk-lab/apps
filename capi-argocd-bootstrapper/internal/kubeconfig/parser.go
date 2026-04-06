@@ -44,8 +44,8 @@ func Parse(data []byte) (*Parsed, error) {
 		if len(cfg.Contexts) != 1 {
 			return nil, fmt.Errorf("current-context not set and found %d contexts (expected exactly 1)", len(cfg.Contexts))
 		}
-		for name := range cfg.Contexts {
-			contextName = name
+		for contextName = range cfg.Contexts {
+			break
 		}
 	}
 
