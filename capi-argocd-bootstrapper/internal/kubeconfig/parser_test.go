@@ -152,6 +152,64 @@ current-context: nonexistent
 			wantErr: true,
 		},
 		{
+			name:       "no current-context with single context",
+			wantServer: "https://1.2.3.4:6443",
+			wantCA:     testCA,
+			wantToken:  "test-bearer-token",
+			input: []byte(fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+- name: test-cluster
+  cluster:
+    server: https://1.2.3.4:6443
+    certificate-authority-data: %s
+users:
+- name: test-user
+  user:
+    token: test-bearer-token
+contexts:
+- name: test-context
+  context:
+    cluster: test-cluster
+    user: test-user
+`, b64(testCA))),
+		},
+		{
+			name:    "no current-context with multiple contexts",
+			wantErr: true,
+			input: []byte(fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+- name: test-cluster
+  cluster:
+    server: https://1.2.3.4:6443
+    certificate-authority-data: %s
+users:
+- name: test-user
+  user:
+    token: test-bearer-token
+contexts:
+- name: context-one
+  context:
+    cluster: test-cluster
+    user: test-user
+- name: context-two
+  context:
+    cluster: test-cluster
+    user: test-user
+`, b64(testCA))),
+		},
+		{
+			name:    "no current-context with no contexts",
+			wantErr: true,
+			input:   []byte(`apiVersion: v1
+kind: Config
+clusters: []
+users: []
+contexts: []
+`),
+		},
+		{
 			name: "cluster not in map",
 			input: []byte(fmt.Sprintf(`apiVersion: v1
 kind: Config

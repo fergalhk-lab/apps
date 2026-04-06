@@ -39,9 +39,19 @@ func Parse(data []byte) (*Parsed, error) {
 		return nil, fmt.Errorf("parse kubeconfig: %w", err)
 	}
 
-	ctx, ok := cfg.Contexts[cfg.CurrentContext]
+	contextName := cfg.CurrentContext
+	if contextName == "" {
+		if len(cfg.Contexts) != 1 {
+			return nil, fmt.Errorf("current-context not set and found %d contexts (expected exactly 1)", len(cfg.Contexts))
+		}
+		for name := range cfg.Contexts {
+			contextName = name
+		}
+	}
+
+	ctx, ok := cfg.Contexts[contextName]
 	if !ok || ctx == nil {
-		return nil, fmt.Errorf("current context %q not found", cfg.CurrentContext)
+		return nil, fmt.Errorf("current context %q not found", contextName)
 	}
 
 	cluster, ok := cfg.Clusters[ctx.Cluster]
