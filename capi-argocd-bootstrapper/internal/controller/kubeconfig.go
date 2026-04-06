@@ -66,9 +66,10 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, nil
 	}
 
+	secretName := "cluster-" + clusterName
 	desired := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
+			Name:      secretName,
 			Namespace: r.ArgoCDNamespace,
 			Labels: map[string]string{
 				labelArgoCDSecretType: "cluster",
@@ -87,7 +88,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	var existing corev1.Secret
-	err = r.Get(ctx, types.NamespacedName{Namespace: r.ArgoCDNamespace, Name: clusterName}, &existing)
+	err = r.Get(ctx, types.NamespacedName{Namespace: r.ArgoCDNamespace, Name: secretName}, &existing)
 	if apierrors.IsNotFound(err) {
 		if err := r.Create(ctx, desired); err != nil {
 			return ctrl.Result{}, fmt.Errorf("create ArgoCD secret: %w", err)
@@ -100,7 +101,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if existing.Labels[labelManagedBy] != "true" {
-		logger.Info("ArgoCD secret not managed by us, skipping", "cluster", clusterName)
+		logger.Info("ArgoCD secret not managed by us, skipping", "secret", secretName)
 		return ctrl.Result{}, nil
 	}
 

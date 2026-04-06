@@ -138,7 +138,7 @@ func waitFor(t *testing.T, condition func() bool) bool {
 
 func getArgoCDSecret(clusterName string) (*corev1.Secret, error) {
 	var s corev1.Secret
-	err := k8sClient.Get(testCtx, types.NamespacedName{Namespace: "argocd", Name: clusterName}, &s)
+	err := k8sClient.Get(testCtx, types.NamespacedName{Namespace: "argocd", Name: "cluster-" + clusterName}, &s)
 	return &s, err
 }
 
@@ -177,24 +177,24 @@ func assertArgoCDSecretCreated(t *testing.T, clusterName, server string) *corev1
 
 func TestReconcileCreate(t *testing.T) {
 	createNS(t, "test-create")
-	secret := makeKubeconfigSecret("test-create", "cluster-a-kubeconfig", "cluster-a",
+	secret := makeKubeconfigSecret("test-create", "alpha-kubeconfig", "alpha",
 		certKubeconfig("https://1.1.1.1:6443"))
 	require.NoError(t, k8sClient.Create(testCtx, secret))
-	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) })                                                                                              //nolint:errcheck
-	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-a", Namespace: "argocd"}}) }) //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) })                                                                                           //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-alpha", Namespace: "argocd"}}) }) //nolint:errcheck
 
-	assertArgoCDSecretCreated(t, "cluster-a", "https://1.1.1.1:6443")
+	assertArgoCDSecretCreated(t, "alpha", "https://1.1.1.1:6443")
 }
 
 func TestReconcileInvalidKubeconfig(t *testing.T) {
 	createNS(t, "test-invalid")
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-invalid-kubeconfig",
+			Name:      "broken-kubeconfig",
 			Namespace: "test-invalid",
 			Labels: map[string]string{
 				"caph.environment":               "owned",
-				"cluster.x-k8s.io/cluster-name": "cluster-invalid",
+				"cluster.x-k8s.io/cluster-name": "broken",
 			},
 		},
 		Data: map[string][]byte{"value": []byte("not valid kubeconfig yaml at all {{{")},
@@ -204,84 +204,84 @@ func TestReconcileInvalidKubeconfig(t *testing.T) {
 
 	// Reconciler should log the error and not requeue — no ArgoCD secret should appear
 	time.Sleep(2 * time.Second)
-	_, err := getArgoCDSecret("cluster-invalid")
+	_, err := getArgoCDSecret("broken")
 	require.Error(t, err, "ArgoCD secret should not have been created for invalid kubeconfig")
 }
 
 func TestReconcileUpdate(t *testing.T) {
 	createNS(t, "test-update")
-	secret := makeKubeconfigSecret("test-update", "cluster-b-kubeconfig", "cluster-b",
+	secret := makeKubeconfigSecret("test-update", "beta-kubeconfig", "beta",
 		certKubeconfig("https://2.2.2.2:6443"))
 	require.NoError(t, k8sClient.Create(testCtx, secret))
-	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) })                                                                                              //nolint:errcheck
-	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-b", Namespace: "argocd"}}) }) //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) })                                                                                        //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-beta", Namespace: "argocd"}}) }) //nolint:errcheck
 
-	assertArgoCDSecretCreated(t, "cluster-b", "https://2.2.2.2:6443")
+	assertArgoCDSecretCreated(t, "beta", "https://2.2.2.2:6443")
 
-	require.NoError(t, k8sClient.Get(testCtx, types.NamespacedName{Namespace: "test-update", Name: "cluster-b-kubeconfig"}, secret))
+	require.NoError(t, k8sClient.Get(testCtx, types.NamespacedName{Namespace: "test-update", Name: "beta-kubeconfig"}, secret))
 	secret.Data["value"] = certKubeconfig("https://3.3.3.3:6443")
 	require.NoError(t, k8sClient.Update(testCtx, secret))
 
 	require.True(t, waitFor(t, func() bool {
-		s, err := getArgoCDSecret("cluster-b")
+		s, err := getArgoCDSecret("beta")
 		return err == nil && string(s.Data["server"]) == "https://3.3.3.3:6443"
 	}), "ArgoCD secret not updated within timeout")
 }
 
 func TestReconcileDelete(t *testing.T) {
 	createNS(t, "test-delete")
-	secret := makeKubeconfigSecret("test-delete", "cluster-c-kubeconfig", "cluster-c",
+	secret := makeKubeconfigSecret("test-delete", "gamma-kubeconfig", "gamma",
 		certKubeconfig("https://4.4.4.4:6443"))
 	require.NoError(t, k8sClient.Create(testCtx, secret))
-	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-c", Namespace: "argocd"}}) }) //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-gamma", Namespace: "argocd"}}) }) //nolint:errcheck
 
-	assertArgoCDSecretCreated(t, "cluster-c", "https://4.4.4.4:6443")
+	assertArgoCDSecretCreated(t, "gamma", "https://4.4.4.4:6443")
 
 	require.NoError(t, k8sClient.Delete(testCtx, secret))
 
 	require.True(t, waitFor(t, func() bool {
-		_, err := getArgoCDSecret("cluster-c")
+		_, err := getArgoCDSecret("gamma")
 		return err != nil // expect not found
 	}), "ArgoCD secret not deleted within timeout")
 }
 
 func TestReconcileRestoreExternallyDeleted(t *testing.T) {
 	createNS(t, "test-restore-del")
-	secret := makeKubeconfigSecret("test-restore-del", "cluster-d-kubeconfig", "cluster-d",
+	secret := makeKubeconfigSecret("test-restore-del", "delta-kubeconfig", "delta",
 		certKubeconfig("https://5.5.5.5:6443"))
 	require.NoError(t, k8sClient.Create(testCtx, secret))
-	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) })                                                                                              //nolint:errcheck
-	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-d", Namespace: "argocd"}}) }) //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) })                                                                                         //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-delta", Namespace: "argocd"}}) }) //nolint:errcheck
 
-	assertArgoCDSecretCreated(t, "cluster-d", "https://5.5.5.5:6443")
+	assertArgoCDSecretCreated(t, "delta", "https://5.5.5.5:6443")
 
 	require.NoError(t, k8sClient.Delete(testCtx, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "cluster-d", Namespace: "argocd"},
+		ObjectMeta: metav1.ObjectMeta{Name: "cluster-delta", Namespace: "argocd"},
 	}))
 
 	require.True(t, waitFor(t, func() bool {
-		_, err := getArgoCDSecret("cluster-d")
+		_, err := getArgoCDSecret("delta")
 		return err == nil
 	}), "ArgoCD secret not recreated within timeout")
 }
 
 func TestReconcileRestoreExternallyModified(t *testing.T) {
 	createNS(t, "test-restore-mod")
-	secret := makeKubeconfigSecret("test-restore-mod", "cluster-e-kubeconfig", "cluster-e",
+	secret := makeKubeconfigSecret("test-restore-mod", "epsilon-kubeconfig", "epsilon",
 		certKubeconfig("https://6.6.6.6:6443"))
 	require.NoError(t, k8sClient.Create(testCtx, secret))
-	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) })                                                                                              //nolint:errcheck
-	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-e", Namespace: "argocd"}}) }) //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) })                                                                                           //nolint:errcheck
+	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-epsilon", Namespace: "argocd"}}) }) //nolint:errcheck
 
-	assertArgoCDSecretCreated(t, "cluster-e", "https://6.6.6.6:6443")
+	assertArgoCDSecretCreated(t, "epsilon", "https://6.6.6.6:6443")
 
-	argoSecret, err := getArgoCDSecret("cluster-e")
+	argoSecret, err := getArgoCDSecret("epsilon")
 	require.NoError(t, err)
 	argoSecret.Data["server"] = []byte("https://tampered:6443")
 	require.NoError(t, k8sClient.Update(testCtx, argoSecret))
 
 	require.True(t, waitFor(t, func() bool {
-		s, err := getArgoCDSecret("cluster-e")
+		s, err := getArgoCDSecret("epsilon")
 		return err == nil && string(s.Data["server"]) == "https://6.6.6.6:6443"
 	}), "ArgoCD secret not restored within timeout")
 }
@@ -291,7 +291,7 @@ func TestReconcileUnmanagedConflict(t *testing.T) {
 
 	preExisting := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cluster-f",
+			Name:      "cluster-zeta",
 			Namespace: "argocd",
 			Labels:    map[string]string{"argocd.argoproj.io/secret-type": "cluster"},
 		},
@@ -300,7 +300,7 @@ func TestReconcileUnmanagedConflict(t *testing.T) {
 	require.NoError(t, k8sClient.Create(testCtx, preExisting))
 	t.Cleanup(func() { k8sClient.Delete(testCtx, preExisting) }) //nolint:errcheck
 
-	secret := makeKubeconfigSecret("test-conflict", "cluster-f-kubeconfig", "cluster-f",
+	secret := makeKubeconfigSecret("test-conflict", "zeta-kubeconfig", "zeta",
 		certKubeconfig("https://7.7.7.7:6443"))
 	require.NoError(t, k8sClient.Create(testCtx, secret))
 	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) }) //nolint:errcheck
@@ -308,7 +308,7 @@ func TestReconcileUnmanagedConflict(t *testing.T) {
 	// Give the reconciler enough time to run
 	time.Sleep(2 * time.Second)
 
-	s, err := getArgoCDSecret("cluster-f")
+	s, err := getArgoCDSecret("zeta")
 	require.NoError(t, err)
 	require.Equal(t, "https://original:6443", string(s.Data["server"]))
 	require.Empty(t, s.Labels["capi-argocd-bootstrapper/managed"])
