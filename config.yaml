@@ -12,3 +12,11 @@ apps:
         run: go test -v ./billsplit/...
       - name: frontend
         run: npm --prefix billsplit/frontend ci && npm --prefix billsplit/frontend test
+  - name: capi-argocd-bootstrapper
+    path: capi-argocd-bootstrapper/
+    image: 740994137039.dkr.ecr.eu-west-1.amazonaws.com/capi-argocd-bootstrapper
+    setupCommands:
+      - go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+    tests:
+      - name: go
+        run: KUBEBUILDER_ASSETS="$(setup-envtest use 1.35.0 -p path)" go test -v ./capi-argocd-bootstrapper/...

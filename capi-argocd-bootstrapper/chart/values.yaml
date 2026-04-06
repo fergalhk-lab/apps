@@ -1,0 +1,14 @@
+image:
+  repository: 740994137039.dkr.ecr.eu-west-1.amazonaws.com/capi-argocd-bootstrapper
+  tag: ""
+  pullPolicy: IfNotPresent
+
+argoCDNamespace: argocd
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    cpu: 100m
+    memory: 32Mi
