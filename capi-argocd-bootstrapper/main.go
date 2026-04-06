@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,6 +22,10 @@ func init() {
 }
 
 func main() {
+	var argoCDNamespace string
+	flag.StringVar(&argoCDNamespace, "argocd-namespace", "argocd", "Namespace where ArgoCD cluster secrets are managed")
+	flag.Parse()
+
 	ctrl.SetLogger(zap.New())
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -33,8 +38,9 @@ func main() {
 	}
 
 	if err := (&controller.KubeconfigReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		ArgoCDNamespace: argoCDNamespace,
 	}).SetupWithManager(mgr); err != nil {
 		log.Fatalf("setup controller: %v", err)
 	}

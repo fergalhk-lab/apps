@@ -18,6 +18,8 @@ spec:
         - name: bootstrapper
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - --argocd-namespace={{ .Values.argoCDNamespace }}
           resources:
             requests:
               cpu: {{ .Values.resources.requests.cpu }}

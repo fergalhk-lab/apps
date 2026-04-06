@@ -27,15 +27,15 @@ const (
 	labelClusterName      = "cluster.x-k8s.io/cluster-name"
 	labelManagedBy        = "capi-argocd-bootstrapper/managed"
 	labelArgoCDSecretType = "argocd.argoproj.io/secret-type"
-	annotationSourceNS    = "capi-argocd-bootstrapper/source-namespace"
-	annotationSourceName  = "capi-argocd-bootstrapper/source-name"
-	argoCDNamespace       = "argocd"
+	annotationSourceNS   = "capi-argocd-bootstrapper/source-namespace"
+	annotationSourceName = "capi-argocd-bootstrapper/source-name"
 )
 
 // KubeconfigReconciler watches CAPI kubeconfig secrets and reconciles ArgoCD cluster secrets.
 type KubeconfigReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme          *runtime.Scheme
+	ArgoCDNamespace string
 }
 
 func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -49,15 +49,14 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
-	parsed, err := kubeconfig.Parse(secret.Data["value"])
-	if err != nil {
-		logger.Error(err, "permanent parse error, skipping", "secret", req.NamespacedName)
+	clusterName := secret.Labels[labelClusterName]
+	if clusterName == "" {
 		return ctrl.Result{}, nil
 	}
 
-	clusterName := secret.Labels[labelClusterName]
-	if clusterName == "" {
-		logger.Error(nil, "cluster name label is empty, skipping", "secret", req.NamespacedName)
+	parsed, err := kubeconfig.Parse(secret.Data["value"])
+	if err != nil {
+		logger.Error(err, "permanent parse error, skipping", "secret", req.NamespacedName)
 		return ctrl.Result{}, nil
 	}
 
@@ -70,7 +69,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	desired := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
-			Namespace: argoCDNamespace,
+			Namespace: r.ArgoCDNamespace,
 			Labels: map[string]string{
 				labelArgoCDSecretType: "cluster",
 				labelManagedBy:        "true",
@@ -88,7 +87,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	var existing corev1.Secret
-	err = r.Get(ctx, types.NamespacedName{Namespace: argoCDNamespace, Name: clusterName}, &existing)
+	err = r.Get(ctx, types.NamespacedName{Namespace: r.ArgoCDNamespace, Name: clusterName}, &existing)
 	if apierrors.IsNotFound(err) {
 		if err := r.Create(ctx, desired); err != nil {
 			return ctrl.Result{}, fmt.Errorf("create ArgoCD secret: %w", err)
@@ -118,7 +117,7 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *KubeconfigReconciler) handleDeletion(ctx context.Context, source types.NamespacedName) (ctrl.Result, error) {
 	var list corev1.SecretList
 	if err := r.List(ctx, &list,
-		client.InNamespace(argoCDNamespace),
+		client.InNamespace(r.ArgoCDNamespace),
 		client.MatchingLabels{labelManagedBy: "true"},
 	); err != nil {
 		return ctrl.Result{}, err
@@ -173,9 +172,9 @@ func kubeconfigPredicate() predicate.Predicate {
 	}
 }
 
-func argoCDManagedPredicate() predicate.Predicate {
+func (r *KubeconfigReconciler) argoCDManagedPredicate() predicate.Predicate {
 	return predicate.NewPredicateFuncs(func(obj client.Object) bool {
-		return obj.GetNamespace() == argoCDNamespace && obj.GetLabels()[labelManagedBy] == "true"
+		return obj.GetNamespace() == r.ArgoCDNamespace && obj.GetLabels()[labelManagedBy] == "true"
 	})
 }
 
@@ -186,7 +185,7 @@ func (r *KubeconfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.mapArgoCDSecretToSource),
-			builder.WithPredicates(argoCDManagedPredicate()),
+			builder.WithPredicates(r.argoCDManagedPredicate()),
 		).
 		Complete(r)
 }

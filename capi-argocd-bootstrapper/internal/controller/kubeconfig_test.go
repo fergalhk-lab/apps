@@ -57,8 +57,9 @@ func TestMain(m *testing.M) {
 	}
 
 	if err := (&controller.KubeconfigReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:          mgr.GetClient(),
+		Scheme:          mgr.GetScheme(),
+		ArgoCDNamespace: "argocd",
 	}).SetupWithManager(mgr); err != nil {
 		panic(fmt.Sprintf("setup controller: %v", err))
 	}
