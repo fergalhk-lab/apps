@@ -20,10 +20,11 @@ type Config struct {
 }
 
 type App struct {
-	Name  string `yaml:"name"`
-	Path  string `yaml:"path"`
-	Image string `yaml:"image"`
-	Tests []Test `yaml:"tests"`
+	Name          string   `yaml:"name"`
+	Path          string   `yaml:"path"`
+	Image         string   `yaml:"image"`
+	SetupCommands []string `yaml:"setupCommands"`
+	Tests         []Test   `yaml:"tests"`
 }
 
 type Test struct {
@@ -32,13 +33,14 @@ type Test struct {
 }
 
 type MatrixEntry struct {
-	Name       string `json:"name"`
-	Path       string `json:"path"`
-	Dockerfile string `json:"dockerfile"`
-	Image      string `json:"image"`
-	Tests      []Test `json:"tests"`
-	ECRRegion  string `json:"ecr_region"`
-	ECRRoleARN string `json:"ecr_role_arn"`
+	Name          string   `json:"name"`
+	Path          string   `json:"path"`
+	Dockerfile    string   `json:"dockerfile"`
+	Image         string   `json:"image"`
+	SetupCommands []string `json:"setup_commands"`
+	Tests         []Test   `json:"tests"`
+	ECRRegion     string   `json:"ecr_region"`
+	ECRRoleARN    string   `json:"ecr_role_arn"`
 }
 
 type Matrix struct {
@@ -53,13 +55,14 @@ func buildMatrix(cfg Config) Matrix {
 			image = app.Image
 		}
 		entries = append(entries, MatrixEntry{
-			Name:       app.Name,
-			Path:       app.Path,
-			Dockerfile: app.Path + "Dockerfile",
-			Image:      image,
-			Tests:      app.Tests,
-			ECRRegion:  cfg.Common.ECR.Region,
-			ECRRoleARN: cfg.Common.ECR.PushIAMRoleARN,
+			Name:          app.Name,
+			Path:          app.Path,
+			Dockerfile:    app.Path + "Dockerfile",
+			Image:         image,
+			SetupCommands: app.SetupCommands,
+			Tests:         app.Tests,
+			ECRRegion:     cfg.Common.ECR.Region,
+			ECRRoleARN:    cfg.Common.ECR.PushIAMRoleARN,
 		})
 	}
 	return Matrix{Include: entries}

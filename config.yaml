@@ -15,6 +15,8 @@ apps:
   - name: capi-argocd-bootstrapper
     path: capi-argocd-bootstrapper/
     image: 740994137039.dkr.ecr.eu-west-1.amazonaws.com/capi-argocd-bootstrapper
+    setupCommands:
+      - go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.23.3
     tests:
       - name: go
-        run: go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.23.3 && KUBEBUILDER_ASSETS="$(setup-envtest use 1.35.0 -p path)" go test -v ./capi-argocd-bootstrapper/...
+        run: KUBEBUILDER_ASSETS="$(setup-envtest use 1.35.0 -p path)" go test -v ./capi-argocd-bootstrapper/...
