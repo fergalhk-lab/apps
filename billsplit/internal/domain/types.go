@@ -36,11 +36,11 @@ const (
 	EventTypeSettlement EventType = "settlement"
 )
 
-// OriginalExpense records the pre-conversion currency and amount when an
-// expense was entered in a currency different from the group's base currency.
+// OriginalExpense records the pre-conversion currency and amount in cents when
+// an expense was entered in a currency different from the group's base currency.
 type OriginalExpense struct {
-	Currency string  `json:"currency"`
-	Amount   float64 `json:"amount"`
+	Currency string `json:"currency"`
+	Amount   int64  `json:"amount"` // in cents
 }
 
 type Event struct {
@@ -50,11 +50,11 @@ type Event struct {
 	CreatedBy string    `json:"createdBy"`
 
 	// expense fields
-	Description     string             `json:"description,omitempty"`
-	Amount          float64            `json:"amount,omitempty"`
-	PaidBy          string             `json:"paidBy,omitempty"`
-	Splits          map[string]float64 `json:"splits,omitempty"`
-	OriginalExpense *OriginalExpense    `json:"originalExpense,omitempty"`
+	Description     string           `json:"description,omitempty"`
+	Amount          int64            `json:"amount,omitempty"` // in cents
+	PaidBy          string           `json:"paidBy,omitempty"`
+	Splits          map[string]int64 `json:"splits,omitempty"` // in cents
+	OriginalExpense *OriginalExpense  `json:"originalExpense,omitempty"`
 
 	// reversal fields
 	ReversedEventID string `json:"reversedEventId,omitempty"`
@@ -74,7 +74,7 @@ type Group struct {
 
 // Settlement represents a single payment that would resolve outstanding debts.
 type Settlement struct {
-	From   string  `json:"from"`
-	To     string  `json:"to"`
-	Amount float64 `json:"amount"`
+	From   string `json:"from"`
+	To     string `json:"to"`
+	Amount int64  `json:"amount"` // in cents
 }
