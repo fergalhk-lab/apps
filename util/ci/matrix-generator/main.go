@@ -22,6 +22,7 @@ type Config struct {
 type App struct {
 	Name  string `yaml:"name"`
 	Path  string `yaml:"path"`
+	Image string `yaml:"image"`
 	Tests []Test `yaml:"tests"`
 }
 
@@ -47,11 +48,15 @@ type Matrix struct {
 func buildMatrix(cfg Config) Matrix {
 	entries := make([]MatrixEntry, 0, len(cfg.Apps))
 	for _, app := range cfg.Apps {
+		image := cfg.Common.ECR.ImagePrefix + "/" + app.Name
+		if app.Image != "" {
+			image = app.Image
+		}
 		entries = append(entries, MatrixEntry{
 			Name:       app.Name,
 			Path:       app.Path,
 			Dockerfile: app.Path + "Dockerfile",
-			Image:      cfg.Common.ECR.ImagePrefix + "/" + app.Name,
+			Image:      image,
 			Tests:      app.Tests,
 			ECRRegion:  cfg.Common.ECR.Region,
 			ECRRoleARN: cfg.Common.ECR.PushIAMRoleARN,
