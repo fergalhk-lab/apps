@@ -25,7 +25,7 @@ export default function GroupDetail() {
   const [settlementPrefill, setSettlementPrefill] = useState<Settlement | null>(null)
 
   const navigate = useNavigate()
-  const hasOutstandingBalances = Object.values(group?.balances ?? {}).some(b => Math.abs(b) > 1e-9)
+  const hasOutstandingBalances = Object.values(group?.balances ?? {}).some(b => b !== 0)
 
   async function loadGroup() {
     try {
@@ -120,7 +120,7 @@ export default function GroupDetail() {
             <div key={user} className="flex justify-between items-center">
               <span className="text-sm">{user}</span>
               <span className={`text-sm font-semibold ${bal >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {bal >= 0 ? '+' : ''}{bal.toFixed(2)}
+                {bal >= 0 ? '+' : ''}{(bal / 100).toFixed(2)}
               </span>
             </div>
           ))}
@@ -145,7 +145,7 @@ export default function GroupDetail() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-semibold">
-                    {group.currency} {s.amount.toFixed(2)}
+                    {group.currency} {(s.amount / 100).toFixed(2)}
                   </span>
                   <Button
                     size="sm"
@@ -183,7 +183,7 @@ export default function GroupDetail() {
                       </p>
                     </div>
                     <div className="text-right ml-4">
-                      <p className="font-semibold text-sm">{group.currency} {e.amount.toFixed(2)}</p>
+                      <p className="font-semibold text-sm">{group.currency} {(e.amount / 100).toFixed(2)}</p>
                       <p className="text-xs text-muted-foreground">{expandedId === e.id ? '▲' : '▼'} splits</p>
                     </div>
                   </div>
@@ -191,7 +191,7 @@ export default function GroupDetail() {
                     <div className="mt-3 pt-3 border-t border-border space-y-1">
                       {e.originalExpense && (
                         <p className="text-xs text-muted-foreground">
-                          Original: {e.originalExpense.currency} {e.originalExpense.amount.toFixed(2)}
+                          Original: {e.originalExpense.currency} {(e.originalExpense.amount / 100).toFixed(2)}
                         </p>
                       )}
                       {Object.entries(e.splits ?? {})
@@ -199,7 +199,7 @@ export default function GroupDetail() {
                         .map(([member, amount]) => (
                           <div key={member} className="flex justify-between text-xs text-muted-foreground max-w-xs">
                             <span>{member}</span>
-                            <span>{group.currency} {amount.toFixed(2)}</span>
+                            <span>{group.currency} {(amount / 100).toFixed(2)}</span>
                           </div>
                         ))}
                       <div className="pt-2">

@@ -115,7 +115,7 @@ export default function Sidebar({
                   g.netBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                 }`}
               >
-                {g.netBalance >= 0 ? '+' : ''}{g.netBalance.toFixed(2)}
+                {g.netBalance >= 0 ? '+' : ''}{(g.netBalance / 100).toFixed(2)}
               </span>
             </Link>
           )
