@@ -12,9 +12,9 @@ func addSettlementHandler(settlements *service.SettlementService) http.HandlerFu
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		var req struct {
-			From   string  `json:"from"`
-			To     string  `json:"to"`
-			Amount float64 `json:"amount"`
+			From   string `json:"from"`
+			To     string `json:"to"`
+			Amount int64  `json:"amount"` // in cents
 		}
 		if err := decodeJSON(r, &req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
