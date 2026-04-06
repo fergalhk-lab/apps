@@ -140,6 +140,75 @@ current-context: test-context
 `, b64(testCA))),
 			wantErr: true,
 		},
+		{
+			name:    "context not in map",
+			input:   []byte(`apiVersion: v1
+kind: Config
+clusters: []
+users: []
+contexts: []
+current-context: nonexistent
+`),
+			wantErr: true,
+		},
+		{
+			name: "cluster not in map",
+			input: []byte(fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters: []
+users:
+- name: test-user
+  user:
+    token: mytoken
+contexts:
+- name: test-context
+  context:
+    cluster: missing-cluster
+    user: test-user
+current-context: test-context
+`)),
+			wantErr: true,
+		},
+		{
+			name: "missing CA data",
+			input: []byte(`apiVersion: v1
+kind: Config
+clusters:
+- name: test-cluster
+  cluster:
+    server: https://1.2.3.4:6443
+users:
+- name: test-user
+  user:
+    token: mytoken
+contexts:
+- name: test-context
+  context:
+    cluster: test-cluster
+    user: test-user
+current-context: test-context
+`),
+			wantErr: true,
+		},
+		{
+			name: "user not in map",
+			input: []byte(fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+- name: test-cluster
+  cluster:
+    server: https://1.2.3.4:6443
+    certificate-authority-data: %s
+users: []
+contexts:
+- name: test-context
+  context:
+    cluster: test-cluster
+    user: missing-user
+current-context: test-context
+`, b64(testCA))),
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
