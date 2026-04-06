@@ -3,6 +3,7 @@ package handler
 
 import (
 	"errors"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -18,11 +19,11 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache,
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		var req struct {
-			Description string             `json:"description"`
-			Amount      float64            `json:"amount"`
-			Currency    string             `json:"currency"`
-			PaidBy      string             `json:"paidBy"`
-			Splits      map[string]float64 `json:"splits"`
+			Description string           `json:"description"`
+			Amount      int64            `json:"amount"` // in cents
+			Currency    string           `json:"currency"`
+			PaidBy      string           `json:"paidBy"`
+			Splits      map[string]int64 `json:"splits"` // in cents
 		}
 		if err := decodeJSON(r, &req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid request body")
@@ -55,21 +56,23 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache,
 				writeError(w, http.StatusServiceUnavailable, "exchange rates unavailable")
 				return
 			}
-			converted, err := rates.Convert(req.Amount, inputCurrency, groupCurrency)
+			fromFloat := float64(req.Amount) / 100
+			converted, err := rates.Convert(fromFloat, inputCurrency, groupCurrency)
 			if err != nil {
 				writeError(w, http.StatusBadRequest, err.Error())
 				return
 			}
 			originalExpense = &domain.OriginalExpense{Currency: inputCurrency, Amount: req.Amount}
-			amount = converted
-			convertedSplits := make(map[string]float64, len(req.Splits))
+			amount = int64(math.Round(converted * 100))
+			convertedSplits := make(map[string]int64, len(req.Splits))
 			for k, v := range req.Splits {
-				cs, err := rates.Convert(v, inputCurrency, groupCurrency)
+				fromFloat := float64(v) / 100
+				cs, err := rates.Convert(fromFloat, inputCurrency, groupCurrency)
 				if err != nil {
 					writeError(w, http.StatusBadRequest, err.Error())
 					return
 				}
-				convertedSplits[k] = cs
+				convertedSplits[k] = int64(math.Round(cs * 100))
 			}
 			splits = convertedSplits
 		}
