@@ -46,9 +46,9 @@ func TestAddExpense(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
-		"alice": 50.0,
-		"bob":   50.0,
+	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 10000, map[string]int64{
+		"alice": 5000,
+		"bob":   5000,
 	}, nil)
 	require.NoError(t, err, "add expense: %v", err)
 	require.NotEmpty(t, eventID, "expected non-empty event ID")
@@ -59,9 +59,9 @@ func TestAddExpense_InvalidSplits(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	_, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
-		"alice": 40.0,
-		"bob":   40.0,
+	_, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 10000, map[string]int64{
+		"alice": 4000,
+		"bob":   4000,
 	}, nil)
 	require.Error(t, err, "expected error for invalid splits")
 }
@@ -71,9 +71,9 @@ func TestAddExpense_UnknownMemberInSplits(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	_, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
-		"alice":  50.0,
-		"nobody": 50.0,
+	_, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 10000, map[string]int64{
+		"alice":  5000,
+		"nobody": 5000,
 	}, nil)
 	require.Error(t, err, "expected error for unknown split member")
 }
@@ -83,9 +83,9 @@ func TestCancelExpense(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
-		"alice": 50.0,
-		"bob":   50.0,
+	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 10000, map[string]int64{
+		"alice": 5000,
+		"bob":   5000,
 	}, nil)
 	require.NoError(t, err, "add expense: %v", err)
 
@@ -98,9 +98,9 @@ func TestCancelExpense_AlreadyCancelled(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	eventID, _ := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 100.0, map[string]float64{
-		"alice": 50.0,
-		"bob":   50.0,
+	eventID, _ := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 10000, map[string]int64{
+		"alice": 5000,
+		"bob":   5000,
 	}, nil)
 	_ = expenses.CancelExpense(ctx, groupID, "alice", eventID)
 
@@ -122,13 +122,13 @@ func TestListEvents_NewestFirst(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	id1, _ := expenses.AddExpense(ctx, groupID, "alice", "First", "alice", 60.0, map[string]float64{
-		"alice": 30.0,
-		"bob":   30.0,
+	id1, _ := expenses.AddExpense(ctx, groupID, "alice", "First", "alice", 6000, map[string]int64{
+		"alice": 3000,
+		"bob":   3000,
 	}, nil)
-	id2, _ := expenses.AddExpense(ctx, groupID, "alice", "Second", "alice", 40.0, map[string]float64{
-		"alice": 20.0,
-		"bob":   20.0,
+	id2, _ := expenses.AddExpense(ctx, groupID, "alice", "Second", "alice", 4000, map[string]int64{
+		"alice": 2000,
+		"bob":   2000,
 	}, nil)
 
 	events, total, err := expenses.ListEvents(ctx, groupID, 10, 0)
@@ -145,9 +145,9 @@ func TestListEvents_Pagination(t *testing.T) {
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
 	for i := 0; i < 5; i++ {
-		_, err := expenses.AddExpense(ctx, groupID, "alice", "Expense", "alice", 20.0, map[string]float64{
-			"alice": 10.0,
-			"bob":   10.0,
+		_, err := expenses.AddExpense(ctx, groupID, "alice", "Expense", "alice", 2000, map[string]int64{
+			"alice": 1000,
+			"bob":   1000,
 		}, nil)
 		require.NoError(t, err, "add expense %d: %v", i, err)
 	}
@@ -182,10 +182,10 @@ func TestAddExpense_WithOriginalExpense(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	orig := &domain.OriginalExpense{Currency: "GBP", Amount: 45.0}
-	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 50.0, map[string]float64{
-		"alice": 25.0,
-		"bob":   25.0,
+	orig := &domain.OriginalExpense{Currency: "GBP", Amount: 4500}
+	eventID, err := expenses.AddExpense(ctx, groupID, "alice", "Dinner", "alice", 5000, map[string]int64{
+		"alice": 2500,
+		"bob":   2500,
 	}, orig)
 	require.NoError(t, err)
 	require.NotEmpty(t, eventID)
@@ -195,5 +195,5 @@ func TestAddExpense_WithOriginalExpense(t *testing.T) {
 	require.Len(t, events, 1)
 	require.NotNil(t, events[0].OriginalExpense)
 	require.Equal(t, "GBP", events[0].OriginalExpense.Currency)
-	require.Equal(t, 45.0, events[0].OriginalExpense.Amount)
+	require.Equal(t, int64(4500), events[0].OriginalExpense.Amount)
 }

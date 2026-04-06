@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/domain"
 	"github.com/fergalhk-lab/apps/billsplit/internal/store"
@@ -19,10 +18,10 @@ var ErrDuplicateMembers = errors.New("duplicate members")
 var ErrOutstandingBalances = errors.New("group has outstanding balances")
 
 type GroupSummary struct {
-	ID         string  `json:"id"`
-	Name       string  `json:"name"`
-	Currency   string  `json:"currency"`
-	NetBalance float64 `json:"netBalance"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Currency   string `json:"currency"`
+	NetBalance int64  `json:"netBalance"` // in cents
 }
 
 type GroupDetail struct {
@@ -30,8 +29,8 @@ type GroupDetail struct {
 	Name        string              `json:"name"`
 	Members     []string            `json:"members"`
 	Currency    string              `json:"currency"`
-	Balances    map[string]float64  `json:"balances"`
-	Settlements []domain.Settlement `json:"settlements"`
+	Balances    map[string]int64    `json:"balances"`    // in cents
+	Settlements []domain.Settlement `json:"settlements"` // amounts in cents
 }
 
 type GroupService struct {
@@ -163,7 +162,7 @@ func (gs *GroupService) LeaveGroup(ctx context.Context, groupID, username string
 	}
 	balances := domain.ComputeBalances(g)
 	if b := balances[username]; b != 0 {
-		return fmt.Errorf("cannot leave: outstanding balance of %.2f", b)
+		return fmt.Errorf("cannot leave: outstanding balance of %d cents", b)
 	}
 
 	// Remove groupID from user's record
@@ -187,7 +186,7 @@ func (gs *GroupService) DeleteGroup(ctx context.Context, groupID string) error {
 		return err
 	}
 	for _, b := range domain.ComputeBalances(g) {
-		if math.Abs(b) > 1e-9 {
+		if b != 0 {
 			return ErrOutstandingBalances
 		}
 	}

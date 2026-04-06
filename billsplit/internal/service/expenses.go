@@ -40,7 +40,7 @@ func (es *ExpenseService) GetGroupCurrency(ctx context.Context, groupID string) 
 
 // AddExpense appends a new expense event to the group. originalExpense is
 // non-nil only when the input currency differs from the group's base currency.
-func (es *ExpenseService) AddExpense(ctx context.Context, groupID, createdBy, description, paidBy string, amount float64, splits map[string]float64, originalExpense *domain.OriginalExpense) (string, error) {
+func (es *ExpenseService) AddExpense(ctx context.Context, groupID, createdBy, description, paidBy string, amount int64, splits map[string]int64, originalExpense *domain.OriginalExpense) (string, error) {
 	eventID := uuid.New().String()
 	return eventID, withRetry(ctx, es.store, groupKey(groupID), es.logger, func(data []byte) ([]byte, error) {
 		if data == nil {

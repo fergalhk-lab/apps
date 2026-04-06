@@ -23,7 +23,7 @@ func NewSettlementService(s store.Store, logger *zap.Logger) *SettlementService 
 	return &SettlementService{store: s, logger: logger.Named("service.settlements")}
 }
 
-func (ss *SettlementService) AddSettlement(ctx context.Context, groupID, createdBy, from, to string, amount float64) error {
+func (ss *SettlementService) AddSettlement(ctx context.Context, groupID, createdBy, from, to string, amount int64) error {
 	eventID := uuid.New().String()
 	return withRetry(ctx, ss.store, groupKey(groupID), ss.logger, func(data []byte) ([]byte, error) {
 		if data == nil {
