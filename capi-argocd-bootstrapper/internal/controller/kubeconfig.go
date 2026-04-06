@@ -56,6 +56,10 @@ func (r *KubeconfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	clusterName := secret.Labels[labelClusterName]
+	if clusterName == "" {
+		logger.Error(nil, "cluster name label is empty, skipping", "secret", req.NamespacedName)
+		return ctrl.Result{}, nil
+	}
 
 	configJSON, err := parsed.ToArgoCDConfigJSON()
 	if err != nil {

@@ -185,6 +185,28 @@ func TestReconcileCreate(t *testing.T) {
 	assertArgoCDSecretCreated(t, "cluster-a", "https://1.1.1.1:6443")
 }
 
+func TestReconcileInvalidKubeconfig(t *testing.T) {
+	createNS(t, "test-invalid")
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-invalid-kubeconfig",
+			Namespace: "test-invalid",
+			Labels: map[string]string{
+				"caph.environment":               "owned",
+				"cluster.x-k8s.io/cluster-name": "cluster-invalid",
+			},
+		},
+		Data: map[string][]byte{"value": []byte("not valid kubeconfig yaml at all {{{")},
+	}
+	require.NoError(t, k8sClient.Create(testCtx, secret))
+	t.Cleanup(func() { k8sClient.Delete(testCtx, secret) }) //nolint:errcheck
+
+	// Reconciler should log the error and not requeue — no ArgoCD secret should appear
+	time.Sleep(2 * time.Second)
+	_, err := getArgoCDSecret("cluster-invalid")
+	require.Error(t, err, "ArgoCD secret should not have been created for invalid kubeconfig")
+}
+
 func TestReconcileUpdate(t *testing.T) {
 	createNS(t, "test-update")
 	secret := makeKubeconfigSecret("test-update", "cluster-b-kubeconfig", "cluster-b",
@@ -210,6 +232,7 @@ func TestReconcileDelete(t *testing.T) {
 	secret := makeKubeconfigSecret("test-delete", "cluster-c-kubeconfig", "cluster-c",
 		certKubeconfig("https://4.4.4.4:6443"))
 	require.NoError(t, k8sClient.Create(testCtx, secret))
+	t.Cleanup(func() { k8sClient.Delete(testCtx, &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "cluster-c", Namespace: "argocd"}}) }) //nolint:errcheck
 
 	assertArgoCDSecretCreated(t, "cluster-c", "https://4.4.4.4:6443")
 
