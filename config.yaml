@@ -12,3 +12,8 @@ apps:
         run: go test -v ./billsplit/...
       - name: frontend
         run: npm --prefix billsplit/frontend ci && npm --prefix billsplit/frontend test
+  - name: capi-argocd-bootstrapper
+    path: capi-argocd-bootstrapper/
+    tests:
+      - name: go
+        run: KUBEBUILDER_ASSETS="$(setup-envtest use -p path)" go test -v ./capi-argocd-bootstrapper/...
