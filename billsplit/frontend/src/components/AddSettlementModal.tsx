@@ -30,7 +30,7 @@ interface Props {
 export default function AddSettlementModal({ group, onClose, onSaved, initialFrom, initialTo, initialAmount }: Props) {
   const [from, setFrom] = useState(initialFrom ?? group.members[0] ?? '')
   const [to, setTo] = useState(initialTo ?? group.members[1] ?? group.members[0] ?? '')
-  const [amount, setAmount] = useState(initialAmount != null ? initialAmount.toFixed(2) : '')
+  const [amount, setAmount] = useState(initialAmount != null ? (initialAmount / 100).toFixed(2) : '')
   const [error, setError] = useState('')
 
   async function handleSubmit(e: React.FormEvent) {
@@ -41,7 +41,7 @@ export default function AddSettlementModal({ group, onClose, onSaved, initialFro
       return
     }
     try {
-      await api.addSettlement(group.id, { from, to, amount: parseFloat(amount) })
+      await api.addSettlement(group.id, { from, to, amount: Math.round(parseFloat(amount) * 100) })
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to record settlement')
