@@ -1,16 +1,11 @@
 // billsplit/internal/domain/splits.go
 package domain
 
-import (
-	"fmt"
-	"math"
-)
-
-const splitEpsilon = 0.01
+import "fmt"
 
 // ValidateSplits checks that splits are valid: all keys are group members,
-// no values are negative, and the sum equals total within splitEpsilon.
-func ValidateSplits(total float64, splits map[string]float64, members []string) error {
+// no values are negative, and the sum equals total exactly.
+func ValidateSplits(total int64, splits map[string]int64, members []string) error {
 	if len(splits) == 0 {
 		return fmt.Errorf("splits must not be empty")
 	}
@@ -20,7 +15,7 @@ func ValidateSplits(total float64, splits map[string]float64, members []string) 
 		memberSet[m] = struct{}{}
 	}
 
-	var sum float64
+	var sum int64
 	for user, amount := range splits {
 		if _, ok := memberSet[user]; !ok {
 			return fmt.Errorf("unknown member %q in splits", user)
@@ -31,8 +26,8 @@ func ValidateSplits(total float64, splits map[string]float64, members []string) 
 		sum += amount
 	}
 
-	if math.Abs(sum-total) > splitEpsilon {
-		return fmt.Errorf("splits sum %.2f does not equal total %.2f", sum, total)
+	if sum != total {
+		return fmt.Errorf("splits sum %d does not equal total %d", sum, total)
 	}
 	return nil
 }

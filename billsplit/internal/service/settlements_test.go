@@ -26,7 +26,7 @@ func TestAddSettlement(t *testing.T) {
 	ctx := context.Background()
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	err := settlements.AddSettlement(ctx, groupID, "bob", "bob", "alice", 50.0)
+	err := settlements.AddSettlement(ctx, groupID, "bob", "bob", "alice", 5000)
 	require.NoError(t, err, "add settlement: %v", err)
 }
 
@@ -34,7 +34,7 @@ func TestAddSettlement_GroupNotFound(t *testing.T) {
 	_, _, _, settlements := setupSettlementTest(t)
 	ctx := context.Background()
 
-	err := settlements.AddSettlement(ctx, "nonexistent-group", "bob", "bob", "alice", 50.0)
+	err := settlements.AddSettlement(ctx, "nonexistent-group", "bob", "bob", "alice", 5000)
 	require.Error(t, err, "expected error for nonexistent group")
 }
 
@@ -49,7 +49,7 @@ func TestAddSettlement_AppearsInListEvents(t *testing.T) {
 
 	groupID := registerAndCreateGroup(t, auth, invites, groups)
 
-	err := settlements.AddSettlement(ctx, groupID, "bob", "bob", "alice", 50.0)
+	err := settlements.AddSettlement(ctx, groupID, "bob", "bob", "alice", 5000)
 	require.NoError(t, err, "add settlement: %v", err)
 
 	events, total, err := expenses.ListEvents(ctx, groupID, 10, 0)

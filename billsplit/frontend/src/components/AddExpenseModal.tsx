@@ -52,33 +52,31 @@ export function computeSplits(
     return largestRemainder(members, raw, total)
   }
 
-  return Object.fromEntries(members.map(m => [m, parseFloat(fixed[m]) || 0]))
+  // fixed: user enters decimal amounts, convert each to cents
+  return Object.fromEntries(
+    members.map(m => [m, Math.round((parseFloat(fixed[m]) || 0) * 100)])
+  )
 }
 
 /**
- * Distributes `total` across `members` using the largest remainder method.
- * `rawAmounts[i]` is the ideal (unrounded) amount for members[i].
- * Guarantees sum(result) === total (to the cent).
+ * Distributes `total` (integer cents) across `members` using the largest
+ * remainder method. `rawAmounts[i]` is the ideal (possibly fractional) cent
+ * amount for members[i]. Guarantees sum(result) === total exactly.
  */
 function largestRemainder(
   members: string[],
-  rawAmounts: number[],
-  total: number,
+  rawAmounts: number[],  // fractional cents
+  total: number,         // integer cents
 ): Record<string, number> {
-  const totalCents = Math.round(total * 100)
-  const floored = rawAmounts.map(r => Math.floor(r * 100))
-  const remainders = rawAmounts.map((r, i) => r * 100 - floored[i])
-
-  const leftover = totalCents - floored.reduce((a, b) => a + b, 0)
-
-  // Sort indices by descending remainder, distribute leftover cents
+  const floored = rawAmounts.map(r => Math.floor(r))
+  const remainders = rawAmounts.map((r, i) => r - floored[i])
+  const leftover = total - floored.reduce((a, b) => a + b, 0)
   const order = members.map((_, i) => i).sort((a, b) => remainders[b] - remainders[a])
-  const cents = [...floored]
+  const result = [...floored]
   for (let i = 0; i < leftover; i++) {
-    cents[order[i]] += 1
+    result[order[i]] += 1
   }
-
-  return Object.fromEntries(members.map((m, i) => [m, cents[i] / 100]))
+  return Object.fromEntries(members.map((m, i) => [m, result[i]]))
 }
 
 interface Props {
@@ -114,10 +112,10 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
       .catch(() => {/* silently fall back to group currency only */})
   }, [])
 
-  const total = parseFloat(amount)
+  const total = Math.round(parseFloat(amount) * 100)  // integer cents
   const splits = computeSplits(splitMode, total, group.members, shares, fixed, percentages)
   const splitsTotal = splits ? Object.values(splits).reduce((a, b) => a + b, 0) : 0
-  const splitsMismatch = splitMode === 'fixed' && amount && splits && Math.abs(splitsTotal - total) > 0.01
+  const splitsMismatch = splitMode === 'fixed' && amount && splits && splitsTotal !== total
   const percentageSum = splitMode === 'percentage'
     ? group.members.reduce((acc, m) => acc + (parseFloat(percentages[m]) || 0), 0)
     : 100
@@ -132,7 +130,7 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
     }
     if (!splits) { setError('Invalid split configuration'); return }
     if (splitsMismatch) {
-      setError(`Splits sum to ${splitsTotal.toFixed(2)} but total is ${total.toFixed(2)}`)
+      setError(`Splits sum to ${(splitsTotal / 100).toFixed(2)} but total is ${(total / 100).toFixed(2)}`)
       return
     }
     try {
@@ -267,7 +265,7 @@ export default function AddExpenseModal({ group, currentUsername, onClose, onSav
               ))}
               {amount && (
                 <p className={`text-xs ${splitsMismatch ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
-                  Splits total: {splitsTotal.toFixed(2)} / {total.toFixed(2)}
+                  Splits total: {(splitsTotal / 100).toFixed(2)} / {(total / 100).toFixed(2)}
                 </p>
               )}
             </div>

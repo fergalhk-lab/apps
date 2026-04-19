@@ -117,10 +117,10 @@ func TestGetGroup_IncludesSettlements(t *testing.T) {
 	gid, err := groups.CreateGroup(ctx, "alice", "Trip", "EUR", []string{"bob"})
 	require.NoError(t, err, "create group")
 
-	// alice pays 100, split evenly → alice net +50, bob net -50
-	_, err = expenses.AddExpense(ctx, gid, "alice", "Dinner", "alice", 100.0, map[string]float64{
-		"alice": 50.0,
-		"bob":   50.0,
+	// alice pays 10000 cents, split evenly → alice net +5000, bob net -5000
+	_, err = expenses.AddExpense(ctx, gid, "alice", "Dinner", "alice", 10000, map[string]int64{
+		"alice": 5000,
+		"bob":   5000,
 	}, nil)
 	require.NoError(t, err, "add expense")
 
@@ -130,7 +130,7 @@ func TestGetGroup_IncludesSettlements(t *testing.T) {
 	s := detail.Settlements[0]
 	assert.Equal(t, "bob", s.From, "unexpected settlement From: %+v", s)
 	assert.Equal(t, "alice", s.To, "unexpected settlement To: %+v", s)
-	assert.Equal(t, float64(50), s.Amount, "unexpected settlement Amount: %+v", s)
+	assert.Equal(t, int64(5000), s.Amount, "unexpected settlement Amount: %+v", s)
 }
 
 // TestListGroups_WarnsOnMissingGroup verifies that ListGroups emits a Warn log
@@ -199,9 +199,9 @@ func TestDeleteGroup_OutstandingBalances(t *testing.T) {
 	gid, err := groups.CreateGroup(ctx, "alice", "Trip", "EUR", []string{"bob"})
 	require.NoError(t, err)
 
-	_, err = expenses.AddExpense(ctx, gid, "alice", "Dinner", "alice", 100.0, map[string]float64{
-		"alice": 50.0,
-		"bob":   50.0,
+	_, err = expenses.AddExpense(ctx, gid, "alice", "Dinner", "alice", 10000, map[string]int64{
+		"alice": 5000,
+		"bob":   5000,
 	}, nil)
 	require.NoError(t, err)
 

@@ -76,7 +76,7 @@ func loginAs(t *testing.T, router http.Handler, username string) *http.Cookie {
 // currency different from the group's base currency, both the total and the
 // splits are converted, so validation passes and the expense is created.
 func TestAddExpense_CrossCurrency(t *testing.T) {
-	// USD=1.0, EUR=0.9: 100 USD → ~111.11 EUR; splits 50/50 USD → ~55.56/55.56 EUR
+	// USD=1.0, EUR=0.9: 10000 cents USD → ~11111 cents EUR; splits 5000/5000 → ~5556/5556 EUR
 	router, groupID := newTestRouterWithFXRates(t, map[string]float64{
 		"USD": 1.0,
 		"EUR": 0.9,
@@ -86,12 +86,12 @@ func TestAddExpense_CrossCurrency(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]interface{}{
 		"description": "Dinner",
-		"amount":      100.0,
+		"amount":      10000,
 		"currency":    "USD",
 		"paidBy":      "alice",
-		"splits": map[string]float64{
-			"alice": 50.0,
-			"bob":   50.0,
+		"splits": map[string]int64{
+			"alice": 5000,
+			"bob":   5000,
 		},
 	})
 	req := httptest.NewRequest(http.MethodPost, "/api/groups/"+groupID+"/expenses", bytes.NewReader(body))
