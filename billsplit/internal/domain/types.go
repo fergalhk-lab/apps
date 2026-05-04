@@ -55,7 +55,7 @@ type RecurringPayment struct {
 	ID          string                  `json:"id"`
 	Description string                  `json:"description"`
 	Amount      float64                 `json:"amount"`
-	MemberID    string                  `json:"memberID"`
+	MemberID    string                  `json:"memberId"`
 	Splits      map[string]float64      `json:"splits"`
 	Cadence     RecurringPaymentCadence `json:"cadence"`
 }
