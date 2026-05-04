@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache, logger *zap.Logger) http.HandlerFunc {
+func addExpenseHandler(expenses *service.ExpenseService, groups *service.GroupService, fxCache *fxrates.Cache, logger *zap.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		groupID := r.PathValue("id")
 		var req struct {
@@ -29,16 +29,17 @@ func addExpenseHandler(expenses *service.ExpenseService, fxCache *fxrates.Cache,
 			return
 		}
 
-		groupCurrency, err := expenses.GetGroupCurrency(r.Context(), groupID)
+		g, err := groups.ReadGroup(r.Context(), groupID)
 		if err != nil {
 			if errors.Is(err, store.ErrNotFound) {
 				writeError(w, http.StatusNotFound, "group not found")
 				return
 			}
-			logger.Error("read group currency failed", zap.Error(err))
+			logger.Error("read group failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to read group")
 			return
 		}
+		groupCurrency := g.Currency
 
 		inputCurrency := req.Currency
 		if inputCurrency == "" {

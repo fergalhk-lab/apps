@@ -25,19 +25,6 @@ func NewExpenseService(s store.Store, logger *zap.Logger) *ExpenseService {
 	return &ExpenseService{store: s, logger: logger.Named("service.expenses")}
 }
 
-// GetGroupCurrency returns the base currency for the given group.
-func (es *ExpenseService) GetGroupCurrency(ctx context.Context, groupID string) (string, error) {
-	data, _, err := es.store.ReadObject(ctx, groupKey(groupID))
-	if err != nil {
-		return "", err
-	}
-	var g domain.Group
-	if err := json.Unmarshal(data, &g); err != nil {
-		return "", err
-	}
-	return g.Currency, nil
-}
-
 // AddExpense appends a new expense event to the group. originalExpense is
 // non-nil only when the input currency differs from the group's base currency.
 func (es *ExpenseService) AddExpense(ctx context.Context, groupID, createdBy, description, paidBy string, amount float64, splits map[string]float64, originalExpense *domain.OriginalExpense) (string, error) {

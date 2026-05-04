@@ -43,7 +43,7 @@ func NewRouter(svc Services, logger *zap.Logger, secureCookie bool) http.Handler
 	mux.Handle("GET /api/currencies", middleware.RequireAuth(svc.Auth, http.HandlerFunc(currenciesHandler(svc.FXRates, logger))))
 
 	// Expenses
-	mux.Handle("POST /api/groups/{id}/expenses", middleware.RequireAuth(svc.Auth, http.HandlerFunc(addExpenseHandler(svc.Expenses, svc.FXRates, logger))))
+	mux.Handle("POST /api/groups/{id}/expenses", middleware.RequireAuth(svc.Auth, http.HandlerFunc(addExpenseHandler(svc.Expenses, svc.Groups, svc.FXRates, logger))))
 	mux.Handle("GET /api/groups/{id}/expenses", middleware.RequireAuth(svc.Auth, http.HandlerFunc(listEventsHandler(svc.Expenses, logger))))
 	mux.Handle("DELETE /api/groups/{id}/expenses/{eventId}", middleware.RequireAuth(svc.Auth, http.HandlerFunc(cancelExpenseHandler(svc.Expenses))))
 
