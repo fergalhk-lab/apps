@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/fergalhk-lab/apps/dogcam/gen/dogcampb"
 	"github.com/fergalhk-lab/apps/dogcam/server/internal/broadcast"
@@ -79,8 +80,13 @@ func main() {
 
 	<-ctx.Done()
 	log.Info("shutting down")
-	grpcSrv.GracefulStop()
-	_ = httpSrv.Shutdown(context.Background())
-	_ = metricsSrv.Shutdown(context.Background())
-	fmt.Println("done")
+	shutCtx, shutCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutCancel()
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() { defer wg.Done(); grpcSrv.GracefulStop() }()
+	go func() { defer wg.Done(); _ = httpSrv.Shutdown(shutCtx) }()
+	go func() { defer wg.Done(); _ = metricsSrv.Shutdown(shutCtx) }()
+	wg.Wait()
+	log.Info("shutdown complete")
 }

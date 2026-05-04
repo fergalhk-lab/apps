@@ -37,7 +37,9 @@ func (h *StreamHandler) VideoStream(stream dogcampb.StreamService_VideoStreamSer
 	// Forward control messages from broadcaster to camera.
 	go func() {
 		for msg := range controlCh {
-			_ = stream.Send(msg)
+			if err := stream.Send(msg); err != nil {
+				return
+			}
 		}
 	}()
 
