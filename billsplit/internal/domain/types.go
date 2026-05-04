@@ -43,6 +43,23 @@ type OriginalExpense struct {
 	Amount   float64 `json:"amount"`
 }
 
+type RecurringPaymentCadence string
+
+const (
+	CadenceDaily   RecurringPaymentCadence = "DAILY"
+	CadenceWeekly  RecurringPaymentCadence = "WEEKLY"
+	CadenceMonthly RecurringPaymentCadence = "MONTHLY"
+)
+
+type RecurringPayment struct {
+	ID          string                  `json:"id"`
+	Description string                  `json:"description"`
+	Amount      float64                 `json:"amount"`
+	MemberID    string                  `json:"memberID"`
+	Splits      map[string]float64      `json:"splits"`
+	Cadence     RecurringPaymentCadence `json:"cadence"`
+}
+
 type Event struct {
 	ID        string    `json:"id"`
 	Type      EventType `json:"type"`
@@ -59,6 +76,9 @@ type Event struct {
 	// reversal fields
 	ReversedEventID string `json:"reversedEventId,omitempty"`
 
+	// recurring payment fields
+	RecurringPaymentID string `json:"recurringPaymentId,omitempty"`
+
 	// settlement fields
 	From string `json:"from,omitempty"`
 	To   string `json:"to,omitempty"`
@@ -66,10 +86,11 @@ type Event struct {
 
 // Group is stored at groups/{id}.json.
 type Group struct {
-	Name     string   `json:"name"`
-	Members  []string `json:"members"`
-	Currency string   `json:"currency"`
-	Events   []Event  `json:"events"`
+	Name               string             `json:"name"`
+	Members            []string           `json:"members"`
+	Currency           string             `json:"currency"`
+	Events             []Event            `json:"events"`
+	RecurringPayments  []RecurringPayment `json:"recurringPayments,omitempty"`
 }
 
 // Settlement represents a single payment that would resolve outstanding debts.
