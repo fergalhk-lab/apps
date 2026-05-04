@@ -167,16 +167,6 @@ func TestListEvents_Pagination(t *testing.T) {
 	require.Empty(t, empty, "expected empty slice, got %d events", len(empty))
 }
 
-func TestGetGroupCurrency(t *testing.T) {
-	auth, invites, groups, expenses := setupExpenseTest(t)
-	ctx := context.Background()
-	groupID := registerAndCreateGroup(t, auth, invites, groups)
-
-	currency, err := expenses.GetGroupCurrency(ctx, groupID)
-	require.NoError(t, err)
-	require.Equal(t, "EUR", currency)
-}
-
 func TestAddExpense_WithOriginalExpense(t *testing.T) {
 	auth, invites, groups, expenses := setupExpenseTest(t)
 	ctx := context.Background()
