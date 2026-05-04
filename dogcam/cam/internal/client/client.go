@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"github.com/fergalhk-lab/apps/dogcam/cam/internal/capture"
@@ -36,6 +37,9 @@ func (c *Client) Run(ctx context.Context, cap capture.Capturer) {
 			}
 			continue
 		}
+		if ctx.Err() != nil {
+			return
+		}
 		backoff = time.Second
 	}
 }
@@ -52,10 +56,7 @@ func (c *Client) RunOnce(ctx context.Context, cap capture.Capturer) error {
 		return err
 	}
 
-	var (
-		framesCaptured int64
-		framesSent     int64
-	)
+	var framesCaptured, framesSent atomic.Int64
 
 	// no-op initially; replaced when START is received
 	captureCancel := func() {}
@@ -78,7 +79,7 @@ func (c *Client) RunOnce(ctx context.Context, cap capture.Capturer) error {
 		case dogcampb.ControlMessage_STOP:
 			captureCancel()
 			captureCancel = func() {}
-			_ = c.reporter.Report(ctx, c.buildMetrics(framesCaptured, framesSent, false, ""))
+			_ = c.reporter.Report(ctx, c.buildMetrics(framesCaptured.Load(), framesSent.Load(), false, ""))
 		}
 	}
 }
@@ -88,7 +89,7 @@ func (c *Client) captureLoop(
 	stream dogcampb.StreamService_VideoStreamClient,
 	cap capture.Capturer,
 	interval time.Duration,
-	captured, sent *int64,
+	captured, sent *atomic.Int64,
 ) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -103,16 +104,16 @@ func (c *Client) captureLoop(
 			if err != nil {
 				lastErr = err.Error()
 			} else {
-				*captured++
+				captured.Add(1)
 				if sendErr := stream.Send(&dogcampb.FrameMessage{
 					JpegData:    frame,
 					TimestampMs: time.Now().UnixMilli(),
 				}); sendErr != nil {
 					return
 				}
-				*sent++
+				sent.Add(1)
 			}
-			_ = c.reporter.Report(ctx, c.buildMetrics(*captured, *sent, true, lastErr))
+			_ = c.reporter.Report(ctx, c.buildMetrics(captured.Load(), sent.Load(), true, lastErr))
 		}
 	}
 }
