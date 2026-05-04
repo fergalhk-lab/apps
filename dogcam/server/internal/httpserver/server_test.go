@@ -6,17 +6,16 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/fergalhk-lab/apps/dogcam/server/internal/broadcast"
 	"github.com/fergalhk-lab/apps/dogcam/server/internal/httpserver"
-	"github.com/fergalhk-lab/apps/dogcam/server/internal/metricsstore"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBasicAuth_RejectsNoCredentials(t *testing.T) {
 	b := broadcast.New(2000)
-	ms := metricsstore.New()
-	srv := httpserver.New(b, ms, "testpass")
+	srv := httpserver.New(b, "testpass")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	w := httptest.NewRecorder()
@@ -28,8 +27,7 @@ func TestBasicAuth_RejectsNoCredentials(t *testing.T) {
 
 func TestBasicAuth_RejectsWrongPassword(t *testing.T) {
 	b := broadcast.New(2000)
-	ms := metricsstore.New()
-	srv := httpserver.New(b, ms, "testpass")
+	srv := httpserver.New(b, "testpass")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetBasicAuth("viewer", "wrongpass")
@@ -41,8 +39,7 @@ func TestBasicAuth_RejectsWrongPassword(t *testing.T) {
 
 func TestBasicAuth_AllowsCorrectPassword(t *testing.T) {
 	b := broadcast.New(2000)
-	ms := metricsstore.New()
-	srv := httpserver.New(b, ms, "testpass")
+	srv := httpserver.New(b, "testpass")
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.SetBasicAuth("viewer", "testpass")
@@ -74,34 +71,41 @@ func (f *flushRecorder) Flush() {
 
 func TestSSE_PublishesFrameAsBase64Event(t *testing.T) {
 	b := broadcast.New(2000)
-	ms := metricsstore.New()
-	srv := httpserver.New(b, ms, "testpass")
+	srv := httpserver.New(b, "testpass")
 
 	frame := []byte{0xFF, 0xD8, 0xFF}
-	go func() {
-		// Publish repeatedly until the SSE handler subscribes and receives
-		for range [10]struct{}{} {
-			b.Publish(frame)
-		}
-	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	req := httptest.NewRequest(http.MethodGet, "/stream", nil).WithContext(ctx)
 	req.SetBasicAuth("viewer", "testpass")
 	w := newFlushRecorder()
 
-	// Run handler in goroutine; cancel after first flush.
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 		srv.Handler().ServeHTTP(w, req)
 	}()
 
+	// Publish continuously until the SSE handler subscribes and flushes a frame.
+	go func() {
+		for {
+			b.Publish(frame)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+		}
+	}()
+
 	select {
 	case <-w.flushed:
 		cancel()
-	case <-done:
+	case <-time.After(2 * time.Second):
+		cancel()
+		t.Fatal("SSE handler did not flush within 2s")
 	}
 	<-done
 

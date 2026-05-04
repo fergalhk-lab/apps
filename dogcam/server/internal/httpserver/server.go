@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/fergalhk-lab/apps/dogcam/server/internal/broadcast"
-	"github.com/fergalhk-lab/apps/dogcam/server/internal/metricsstore"
 	"github.com/google/uuid"
 )
 
@@ -19,7 +18,7 @@ type Server struct {
 	handler http.Handler
 }
 
-func New(b *broadcast.Broadcaster, ms *metricsstore.Store, viewerPassword string) *Server {
+func New(b *broadcast.Broadcaster, viewerPassword string) *Server {
 	mux := http.NewServeMux()
 
 	static, _ := fs.Sub(staticFiles, "static")
