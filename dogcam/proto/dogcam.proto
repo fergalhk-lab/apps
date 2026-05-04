@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package dogcam;
+
+option go_package = "github.com/fergalhk-lab/apps/dogcam/gen/dogcampb";
+
+// StreamService handles bidirectional video streaming.
+// The camera client opens a persistent VideoStream and idles until it receives
+// a START command. The server sends START when the first browser connects and
+// STOP when the last browser disconnects.
+service StreamService {
+  rpc VideoStream(stream FrameMessage) returns (stream ControlMessage) {}
+}
+
+message FrameMessage {
+  bytes jpeg_data    = 1;
+  int64 timestamp_ms = 2;
+}
+
+message ControlMessage {
+  enum Command {
+    START = 0;
+    STOP  = 1;
+  }
+  Command command         = 1;
+  int32 frame_interval_ms = 2; // only meaningful when command = START
+}
+
+// TelemetryService receives metrics from the camera client.
+// The camera calls ReportMetrics only when state has changed.
+service TelemetryService {
+  rpc ReportMetrics(MetricsPayload) returns (MetricsAck) {}
+}
+
+message MetricsPayload {
+  int64  frames_captured  = 1;
+  int64  frames_sent      = 2;
+  bool   streaming_active = 3;
+  int64  uptime_seconds   = 4;
+  string last_error       = 5;
+}
+
+message MetricsAck {}
