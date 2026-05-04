@@ -19,8 +19,9 @@ message FrameMessage {
 
 message ControlMessage {
   enum Command {
-    START = 0;
-    STOP  = 1;
+    COMMAND_UNKNOWN = 0;
+    START           = 1;
+    STOP            = 2;
   }
   Command command         = 1;
   int32 frame_interval_ms = 2; // only meaningful when command = START

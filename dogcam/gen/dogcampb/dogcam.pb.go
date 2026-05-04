@@ -24,19 +24,22 @@ const (
 type ControlMessage_Command int32
 
 const (
-	ControlMessage_START ControlMessage_Command = 0
-	ControlMessage_STOP  ControlMessage_Command = 1
+	ControlMessage_COMMAND_UNKNOWN ControlMessage_Command = 0
+	ControlMessage_START           ControlMessage_Command = 1
+	ControlMessage_STOP            ControlMessage_Command = 2
 )
 
 // Enum value maps for ControlMessage_Command.
 var (
 	ControlMessage_Command_name = map[int32]string{
-		0: "START",
-		1: "STOP",
+		0: "COMMAND_UNKNOWN",
+		1: "START",
+		2: "STOP",
 	}
 	ControlMessage_Command_value = map[string]int32{
-		"START": 0,
-		"STOP":  1,
+		"COMMAND_UNKNOWN": 0,
+		"START":           1,
+		"STOP":            2,
 	}
 )
 
@@ -161,7 +164,7 @@ func (x *ControlMessage) GetCommand() ControlMessage_Command {
 	if x != nil {
 		return x.Command
 	}
-	return ControlMessage_START
+	return ControlMessage_COMMAND_UNKNOWN
 }
 
 func (x *ControlMessage) GetFrameIntervalMs() int32 {
@@ -290,13 +293,14 @@ const file_dogcam_proto_rawDesc = "" +
 	"\fdogcam.proto\x12\x06dogcam\"N\n" +
 	"\fFrameMessage\x12\x1b\n" +
 	"\tjpeg_data\x18\x01 \x01(\fR\bjpegData\x12!\n" +
-	"\ftimestamp_ms\x18\x02 \x01(\x03R\vtimestampMs\"\x96\x01\n" +
+	"\ftimestamp_ms\x18\x02 \x01(\x03R\vtimestampMs\"\xab\x01\n" +
 	"\x0eControlMessage\x128\n" +
 	"\acommand\x18\x01 \x01(\x0e2\x1e.dogcam.ControlMessage.CommandR\acommand\x12*\n" +
-	"\x11frame_interval_ms\x18\x02 \x01(\x05R\x0fframeIntervalMs\"\x1e\n" +
-	"\aCommand\x12\t\n" +
-	"\x05START\x10\x00\x12\b\n" +
-	"\x04STOP\x10\x01\"\xcb\x01\n" +
+	"\x11frame_interval_ms\x18\x02 \x01(\x05R\x0fframeIntervalMs\"3\n" +
+	"\aCommand\x12\x13\n" +
+	"\x0fCOMMAND_UNKNOWN\x10\x00\x12\t\n" +
+	"\x05START\x10\x01\x12\b\n" +
+	"\x04STOP\x10\x02\"\xcb\x01\n" +
 	"\x0eMetricsPayload\x12'\n" +
 	"\x0fframes_captured\x18\x01 \x01(\x03R\x0eframesCaptured\x12\x1f\n" +
 	"\vframes_sent\x18\x02 \x01(\x03R\n" +
