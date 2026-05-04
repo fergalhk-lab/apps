@@ -35,7 +35,7 @@ func addExpenseHandler(expenses *service.ExpenseService, groups *service.GroupSe
 				writeError(w, http.StatusNotFound, "group not found")
 				return
 			}
-			logger.Error("read group currency failed", zap.Error(err))
+			logger.Error("read group failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to read group")
 			return
 		}
