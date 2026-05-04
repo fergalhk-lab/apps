@@ -46,6 +46,9 @@ func (b *Broadcaster) UnregisterCamera() {
 func (b *Broadcaster) Subscribe(id string) <-chan []byte {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if existing, ok := b.clients[id]; ok {
+		close(existing)
+	}
 	ch := make(chan []byte, 4)
 	b.clients[id] = ch
 	if len(b.clients) == 1 && b.controlCh != nil {
