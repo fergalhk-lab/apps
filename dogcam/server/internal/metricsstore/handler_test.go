@@ -30,7 +30,7 @@ func TestMetricsHandler_ReturnsLatestPayload(t *testing.T) {
 	metricsstore.Handler(s).ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	var got map[string]interface{}
+	var got map[string]any
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &got))
 	// protojson encodes int64 fields as strings per the proto3 JSON spec
 	assert.Equal(t, "5", got["framesCaptured"])
