@@ -57,34 +57,27 @@ func (c *Client) RunOnce(ctx context.Context, cap capture.Capturer) error {
 		framesSent     int64
 	)
 
-	var captureCancel context.CancelFunc
-	defer func() {
-		if captureCancel != nil {
-			captureCancel()
-		}
-	}()
+	// no-op initially; replaced when START is received
+	captureCancel := func() {}
 
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
+			captureCancel()
 			return err
 		}
 
 		switch msg.Command {
 		case dogcampb.ControlMessage_START:
-			if captureCancel != nil {
-				captureCancel()
-			}
+			captureCancel() // stop any existing capture goroutine
 			var captureCtx context.Context
 			captureCtx, captureCancel = context.WithCancel(ctx)
 			interval := time.Duration(msg.FrameIntervalMs) * time.Millisecond
 			go c.captureLoop(captureCtx, stream, cap, interval, &framesCaptured, &framesSent)
 
 		case dogcampb.ControlMessage_STOP:
-			if captureCancel != nil {
-				captureCancel()
-				captureCancel = nil
-			}
+			captureCancel()
+			captureCancel = func() {}
 			_ = c.reporter.Report(ctx, c.buildMetrics(framesCaptured, framesSent, false, ""))
 		}
 	}
