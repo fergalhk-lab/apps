@@ -24,9 +24,9 @@ func setupAuth(t *testing.T) (*service.AuthService, string) {
 	code, err := invites.GenerateInvite(context.Background(), false)
 	require.NoError(t, err)
 	require.NoError(t, auth.Register(context.Background(), "alice", "password123", code))
-	token, _, err := auth.Login(context.Background(), "alice", "password123")
+	sess, err := auth.Login(context.Background(), "alice", "password123")
 	require.NoError(t, err)
-	return auth, token
+	return auth, sess.Token
 }
 
 func okHandler() http.Handler {

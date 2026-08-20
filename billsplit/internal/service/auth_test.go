@@ -50,15 +50,15 @@ func TestRegister_InvalidCode(t *testing.T) {
 func TestLogin_Success(t *testing.T) {
 	auth, invites := newAuthAndInviteServices(t)
 	registerUser(t, auth, invites, "alice", "password123")
-	token, _, err := auth.Login(context.Background(), "alice", "password123")
+	sess, err := auth.Login(context.Background(), "alice", "password123")
 	require.NoError(t, err, "login: %v", err)
-	require.NotEmpty(t, token, "expected non-empty token")
+	require.NotEmpty(t, sess.Token, "expected non-empty token")
 }
 
 func TestLogin_WrongPassword(t *testing.T) {
 	auth, invites := newAuthAndInviteServices(t)
 	registerUser(t, auth, invites, "alice", "password123")
-	_, _, err := auth.Login(context.Background(), "alice", "wrong")
+	_, err := auth.Login(context.Background(), "alice", "wrong")
 	require.Error(t, err, "expected error for wrong password")
 }
 
@@ -68,10 +68,13 @@ func TestLogin_TokenExpiryTracksConfiguredDuration(t *testing.T) {
 	registerUser(t, auth, invites, "alice", "password123")
 
 	issuedAt := time.Now()
-	token, _, err := auth.Login(context.Background(), "alice", "password123")
+	sess, err := auth.Login(context.Background(), "alice", "password123")
 	require.NoError(t, err, "login: %v", err)
 
-	parsed, err := jwt.Parse(token, func(*jwt.Token) (interface{}, error) {
+	assert.Equal(t, expiry, sess.ExpiresIn,
+		"session should report the configured expiry")
+
+	parsed, err := jwt.Parse(sess.Token, func(*jwt.Token) (interface{}, error) {
 		return []byte(testJWTSecret), nil
 	})
 	require.NoError(t, err, "parse token: %v", err)
@@ -80,19 +83,15 @@ func TestLogin_TokenExpiryTracksConfiguredDuration(t *testing.T) {
 
 	assert.WithinDuration(t, issuedAt.Add(expiry), exp.Time, time.Minute,
 		"token exp should track the configured expiry, not a fixed 24h")
-}
-
-func TestTokenExpiry_ReturnsConfiguredDuration(t *testing.T) {
-	const expiry = 720 * time.Hour
-	auth, _ := newAuthAndInviteServicesWithExpiry(t, expiry)
-	assert.Equal(t, expiry, auth.TokenExpiry())
+	assert.WithinDuration(t, issuedAt.Add(sess.ExpiresIn), exp.Time, time.Minute,
+		"reported ExpiresIn should match the exp claim actually stamped into the token")
 }
 
 func TestVerifyToken(t *testing.T) {
 	auth, invites := newAuthAndInviteServices(t)
 	registerUser(t, auth, invites, "alice", "password123")
-	token, _, _ := auth.Login(context.Background(), "alice", "password123")
-	claims, err := auth.VerifyToken(token)
+	sess, _ := auth.Login(context.Background(), "alice", "password123")
+	claims, err := auth.VerifyToken(sess.Token)
 	require.NoError(t, err, "verify: %v", err)
 	assert.Equal(t, "alice", claims.Username)
 }
