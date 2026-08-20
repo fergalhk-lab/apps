@@ -228,12 +228,6 @@ export default function GroupDetail() {
                   <p className="font-semibold text-sm">{group.currency} {e.amount.toFixed(2)}</p>
                 </div>
               )}
-
-              {e.type === 'reversal' && (
-                <p className="text-xs text-muted-foreground italic">
-                  Expense cancelled (#{e.reversedEventId?.slice(0, 8)})
-                </p>
-              )}
             </CardContent>
           </Card>
         ))}

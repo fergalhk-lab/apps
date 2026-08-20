@@ -96,9 +96,37 @@ func (es *ExpenseService) CancelExpense(ctx context.Context, groupID, cancelledB
 	})
 }
 
+// omitReversed drops reversal events along with the expenses they cancelled,
+// leaving every other event untouched.
+func omitReversed(events []domain.Event) []domain.Event {
+	cancelled := make(map[string]struct{})
+	for _, e := range events {
+		if e.Type == domain.EventTypeReversal {
+			cancelled[e.ReversedEventID] = struct{}{}
+		}
+	}
+	if len(cancelled) == 0 {
+		return events
+	}
+	kept := make([]domain.Event, 0, len(events))
+	for _, e := range events {
+		if e.Type == domain.EventTypeReversal {
+			continue
+		}
+		if _, ok := cancelled[e.ID]; ok {
+			continue
+		}
+		kept = append(kept, e)
+	}
+	return kept
+}
+
 // ListEvents returns events newest-first with pagination. Returns the slice for
-// the requested page and the total count.
-func (es *ExpenseService) ListEvents(ctx context.Context, groupID string, limit, offset int) ([]domain.Event, int, error) {
+// the requested page and the total count. Unless includeReversed is set,
+// reversal events and the expenses they cancelled are omitted. Filtering happens
+// before pagination so that pages stay full and total matches what callers see.
+// Balances are unaffected: domain.ComputeBalances still replays reversals.
+func (es *ExpenseService) ListEvents(ctx context.Context, groupID string, limit, offset int, includeReversed bool) ([]domain.Event, int, error) {
 	data, _, err := es.store.ReadObject(ctx, groupKey(groupID))
 	if err != nil {
 		return nil, 0, err
@@ -108,10 +136,15 @@ func (es *ExpenseService) ListEvents(ctx context.Context, groupID string, limit,
 		return nil, 0, err
 	}
 
+	events := g.Events
+	if !includeReversed {
+		events = omitReversed(events)
+	}
+
 	// reverse for newest-first
-	reversed := make([]domain.Event, len(g.Events))
-	for i, e := range g.Events {
-		reversed[len(g.Events)-1-i] = e
+	reversed := make([]domain.Event, len(events))
+	for i, e := range events {
+		reversed[len(events)-1-i] = e
 	}
 
 	total := len(reversed)

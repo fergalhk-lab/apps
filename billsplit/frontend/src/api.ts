@@ -59,7 +59,7 @@ export type Group = {
   settlements?: Settlement[]
 }
 
-export type EventType = 'expense' | 'settlement' | 'reversal'
+export type EventType = 'expense' | 'settlement'
 
 export type OriginalExpense = {
   currency: string
@@ -76,7 +76,6 @@ export type GroupEvent = {
   to?: string
   splits?: Record<string, number>
   createdAt: string
-  reversedEventId?: string
   originalExpense?: OriginalExpense
 }
 
