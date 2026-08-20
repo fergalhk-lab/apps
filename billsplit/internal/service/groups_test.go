@@ -20,7 +20,7 @@ import (
 func setupGroupTest(t *testing.T) (*service.AuthService, *service.InviteService, *service.GroupService) {
 	t.Helper()
 	st := newTestStore(t)
-	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 	return auth, invites, groups
@@ -104,7 +104,7 @@ func TestGetGroup_IncludesSettlements(t *testing.T) {
 	// Use a single shared store so all services see the same state.
 	st := newTestStore(t)
 	ctx := context.Background()
-	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 	expenses := service.NewExpenseService(st, zaptest.NewLogger(t))
@@ -186,7 +186,7 @@ func TestDeleteGroup_AllBalancesZero(t *testing.T) {
 func TestDeleteGroup_OutstandingBalances(t *testing.T) {
 	st := newTestStore(t)
 	ctx := context.Background()
-	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 	expenses := service.NewExpenseService(st, zaptest.NewLogger(t))

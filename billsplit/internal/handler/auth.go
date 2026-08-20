@@ -59,7 +59,7 @@ func authLoginHandler(auth *service.AuthService, secureCookie bool) http.Handler
 			SameSite: http.SameSiteStrictMode,
 			Secure:   secureCookie,
 			Path:     "/",
-			MaxAge:   86400,
+			MaxAge:   int(auth.TokenExpiry().Seconds()),
 		})
 		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"username": claims.Username,

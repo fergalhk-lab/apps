@@ -25,7 +25,7 @@ func newTestRouterWithFXRates(t *testing.T, rates map[string]float64) (http.Hand
 	st := testutil.NewTestStore(t)
 	ctx := context.Background()
 
-	auth := service.NewAuthService(st, "test-secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "test-secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 

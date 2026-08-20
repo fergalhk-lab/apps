@@ -31,11 +31,17 @@ type Claims struct {
 type AuthService struct {
 	store     store.Store
 	jwtSecret string
+	expiry    time.Duration
 	logger    *zap.Logger
 }
 
-func NewAuthService(s store.Store, jwtSecret string, logger *zap.Logger) *AuthService {
-	return &AuthService{store: s, jwtSecret: jwtSecret, logger: logger.Named("service.auth")}
+func NewAuthService(s store.Store, jwtSecret string, expiry time.Duration, logger *zap.Logger) *AuthService {
+	return &AuthService{
+		store:     s,
+		jwtSecret: jwtSecret,
+		expiry:    expiry,
+		logger:    logger.Named("service.auth"),
+	}
 }
 
 func (a *AuthService) Register(ctx context.Context, username, password, inviteCode string) error {
@@ -148,11 +154,16 @@ func (a *AuthService) VerifyToken(tokenStr string) (Claims, error) {
 // Store returns the underlying store for use by other services.
 func (a *AuthService) Store() store.Store { return a.store }
 
+// TokenExpiry returns how long issued tokens remain valid. Callers that set a
+// session cookie should derive its MaxAge from this so the cookie and the token
+// it carries expire together.
+func (a *AuthService) TokenExpiry() time.Duration { return a.expiry }
+
 func (a *AuthService) issueToken(c Claims) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": c.Username,
 		"isAdmin":  c.IsAdmin,
-		"exp":      time.Now().Add(24 * time.Hour).Unix(),
+		"exp":      time.Now().Add(a.expiry).Unix(),
 	})
 	return token.SignedString([]byte(a.jwtSecret))
 }

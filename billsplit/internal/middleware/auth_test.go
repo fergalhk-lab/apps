@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/middleware"
 	"github.com/fergalhk-lab/apps/billsplit/internal/service"
@@ -18,7 +19,7 @@ import (
 func setupAuth(t *testing.T) (*service.AuthService, string) {
 	t.Helper()
 	st := testutil.NewTestStore(t)
-	auth := service.NewAuthService(st, "test-secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "test-secret", 24*time.Hour, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	code, err := invites.GenerateInvite(context.Background(), false)
 	require.NoError(t, err)

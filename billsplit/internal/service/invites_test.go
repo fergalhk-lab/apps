@@ -12,7 +12,7 @@ import (
 
 func TestGenerateInvite(t *testing.T) {
 	st := newTestStore(t)
-	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	ctx := context.Background()
 
