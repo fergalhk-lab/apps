@@ -52,7 +52,7 @@ func TestAddSettlement_AppearsInListEvents(t *testing.T) {
 	err := settlements.AddSettlement(ctx, groupID, "bob", "bob", "alice", 50.0)
 	require.NoError(t, err, "add settlement: %v", err)
 
-	events, total, err := expenses.ListEvents(ctx, groupID, 10, 0)
+	events, total, err := expenses.ListEvents(ctx, groupID, 10, 0, false)
 	require.NoError(t, err, "list events: %v", err)
 	require.Equal(t, 1, total, "expected total=1, got %d", total)
 	require.Len(t, events, 1, "expected 1 event, got %d", len(events))

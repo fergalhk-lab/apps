@@ -72,6 +72,81 @@ func loginAs(t *testing.T, router http.Handler, username string) *http.Cookie {
 	return cookie
 }
 
+// addExpense creates an expense via the API and returns its event ID.
+func addExpense(t *testing.T, router http.Handler, cookie *http.Cookie, groupID, description string) string {
+	t.Helper()
+	body, _ := json.Marshal(map[string]interface{}{
+		"description": description,
+		"amount":      100.0,
+		"paidBy":      "alice",
+		"splits":      map[string]float64{"alice": 50.0, "bob": 50.0},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/groups/"+groupID+"/expenses", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.AddCookie(cookie)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusCreated, rr.Code, "add expense: %s", rr.Body.String())
+
+	var resp map[string]string
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))
+	return resp["id"]
+}
+
+// listEvents calls the list endpoint with the given raw query string and returns
+// the decoded event count and reported total.
+func listEvents(t *testing.T, router http.Handler, cookie *http.Cookie, groupID, query string) (int, int) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/api/groups/"+groupID+"/expenses"+query, nil)
+	req.AddCookie(cookie)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusOK, rr.Code, "list events: %s", rr.Body.String())
+
+	var resp struct {
+		Events []map[string]interface{} `json:"events"`
+		Total  int                      `json:"total"`
+	}
+	require.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))
+	return len(resp.Events), resp.Total
+}
+
+// TestListEvents_ReversedQueryParam verifies the reversed flag is plumbed from
+// the query string through to the service, and that anything unparseable falls
+// back to the safe default of hiding cancelled expenses.
+func TestListEvents_ReversedQueryParam(t *testing.T) {
+	router, groupID := newTestRouterWithFXRates(t, map[string]float64{"USD": 1.0, "EUR": 0.9})
+	cookie := loginAs(t, router, "alice")
+
+	addExpense(t, router, cookie, groupID, "Kept")
+	cancelled := addExpense(t, router, cookie, groupID, "Cancelled")
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/groups/"+groupID+"/expenses/"+cancelled, nil)
+	req.AddCookie(cookie)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+	require.Equal(t, http.StatusNoContent, rr.Code, "cancel expense: %s", rr.Body.String())
+
+	tests := []struct {
+		name  string
+		query string
+		want  int
+	}{
+		{name: "defaults to hiding reversed", query: "", want: 1},
+		{name: "explicit false hides reversed", query: "?reversed=false", want: 1},
+		{name: "true returns the full log", query: "?reversed=true", want: 3},
+		{name: "unparseable falls back to false", query: "?reversed=banana", want: 1},
+		{name: "empty value falls back to false", query: "?reversed=", want: 1},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			count, total := listEvents(t, router, cookie, groupID, tc.query)
+			assert.Equal(t, tc.want, count, "unexpected event count for query %q", tc.query)
+			assert.Equal(t, tc.want, total, "total should match the events returned for query %q", tc.query)
+		})
+	}
+}
+
 // TestAddExpense_CrossCurrency verifies that when submitting an expense in a
 // currency different from the group's base currency, both the total and the
 // splits are converted, so validation passes and the expense is created.

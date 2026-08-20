@@ -93,7 +93,10 @@ func listEventsHandler(expenses *service.ExpenseService, logger *zap.Logger) htt
 		if limit <= 0 {
 			limit = 20
 		}
-		events, total, err := expenses.ListEvents(r.Context(), groupID, limit, offset)
+		// Cancelled expenses are hidden by default; an unparseable value falls
+		// back to false, matching how limit and offset treat bad input above.
+		includeReversed, _ := strconv.ParseBool(r.URL.Query().Get("reversed"))
+		events, total, err := expenses.ListEvents(r.Context(), groupID, limit, offset, includeReversed)
 		if err != nil {
 			logger.Error("list events failed", zap.Error(err))
 			writeError(w, http.StatusInternalServerError, "failed to list events")
