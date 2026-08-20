@@ -28,14 +28,29 @@ type Claims struct {
 	IsAdmin  bool
 }
 
+// Session is a freshly issued token together with the lifetime stamped into
+// it. Callers that set a session cookie should derive its MaxAge from
+// ExpiresIn so the cookie and the token it carries expire together.
+type Session struct {
+	Token     string
+	ExpiresIn time.Duration
+	Claims    Claims
+}
+
 type AuthService struct {
 	store     store.Store
 	jwtSecret string
+	expiry    time.Duration
 	logger    *zap.Logger
 }
 
-func NewAuthService(s store.Store, jwtSecret string, logger *zap.Logger) *AuthService {
-	return &AuthService{store: s, jwtSecret: jwtSecret, logger: logger.Named("service.auth")}
+func NewAuthService(s store.Store, jwtSecret string, expiry time.Duration, logger *zap.Logger) *AuthService {
+	return &AuthService{
+		store:     s,
+		jwtSecret: jwtSecret,
+		expiry:    expiry,
+		logger:    logger.Named("service.auth"),
+	}
 }
 
 func (a *AuthService) Register(ctx context.Context, username, password, inviteCode string) error {
@@ -75,32 +90,27 @@ func (a *AuthService) Register(ctx context.Context, username, password, inviteCo
 	})
 }
 
-func (a *AuthService) Login(ctx context.Context, username, password string) (string, Claims, error) {
+func (a *AuthService) Login(ctx context.Context, username, password string) (Session, error) {
 	data, _, err := a.store.ReadObject(ctx, usersKey)
 	if errors.Is(err, store.ErrNotFound) {
-		return "", Claims{}, ErrBadCredentials
+		return Session{}, ErrBadCredentials
 	}
 	if err != nil {
-		return "", Claims{}, err
+		return Session{}, err
 	}
 	var ud domain.UsersData
 	if err := json.Unmarshal(data, &ud); err != nil {
-		return "", Claims{}, err
+		return Session{}, err
 	}
 	for _, u := range ud.Users {
 		if u.Username == username {
 			if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
-				return "", Claims{}, ErrBadCredentials
+				return Session{}, ErrBadCredentials
 			}
-			c := Claims{Username: u.Username, IsAdmin: u.IsAdmin}
-			token, err := a.issueToken(c)
-			if err != nil {
-				return "", Claims{}, err
-			}
-			return token, c, nil
+			return a.issueToken(Claims{Username: u.Username, IsAdmin: u.IsAdmin})
 		}
 	}
-	return "", Claims{}, ErrBadCredentials
+	return Session{}, ErrBadCredentials
 }
 
 // ListUsers returns a summary of every registered user.
@@ -148,13 +158,18 @@ func (a *AuthService) VerifyToken(tokenStr string) (Claims, error) {
 // Store returns the underlying store for use by other services.
 func (a *AuthService) Store() store.Store { return a.store }
 
-func (a *AuthService) issueToken(c Claims) (string, error) {
+// issueToken mints a signed JWT for c and reports the lifetime stamped into it.
+func (a *AuthService) issueToken(c Claims) (Session, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": c.Username,
 		"isAdmin":  c.IsAdmin,
-		"exp":      time.Now().Add(24 * time.Hour).Unix(),
+		"exp":      time.Now().Add(a.expiry).Unix(),
 	})
-	return token.SignedString([]byte(a.jwtSecret))
+	signed, err := token.SignedString([]byte(a.jwtSecret))
+	if err != nil {
+		return Session{}, err
+	}
+	return Session{Token: signed, ExpiresIn: a.expiry, Claims: c}, nil
 }
 
 func (a *AuthService) unmarshalOrEmpty(data []byte) (domain.UsersData, error) {

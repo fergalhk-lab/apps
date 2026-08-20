@@ -22,6 +22,8 @@ services:
         rawValue: "fergalhk-billsplit-live"
       - name: SECURE_COOKIE
         rawValue: "true"
+      - name: AUTH_EXPIRY
+        rawValue: "720h"
       - name: JWT_SECRET
         fromGeneratedSecret: jwt-signing
     ingress:

@@ -47,23 +47,23 @@ func authLoginHandler(auth *service.AuthService, secureCookie bool) http.Handler
 			writeError(w, http.StatusBadRequest, "invalid request body")
 			return
 		}
-		token, claims, err := auth.Login(r.Context(), req.Username, req.Password)
+		sess, err := auth.Login(r.Context(), req.Username, req.Password)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
 		http.SetCookie(w, &http.Cookie{
 			Name:     middleware.SessionCookieName,
-			Value:    token,
+			Value:    sess.Token,
 			HttpOnly: true,
 			SameSite: http.SameSiteStrictMode,
 			Secure:   secureCookie,
 			Path:     "/",
-			MaxAge:   86400,
+			MaxAge:   int(sess.ExpiresIn.Seconds()),
 		})
 		writeJSON(w, http.StatusOK, map[string]interface{}{
-			"username": claims.Username,
-			"isAdmin":  claims.IsAdmin,
+			"username": sess.Claims.Username,
+			"isAdmin":  sess.Claims.IsAdmin,
 		})
 	}
 }

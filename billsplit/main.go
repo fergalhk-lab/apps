@@ -51,7 +51,7 @@ func main() {
 	store := localstore.NewS3Store(s3Client, cfg.S3Bucket)
 
 	svc := handler.Services{
-		Auth:        service.NewAuthService(store, cfg.JWTSecret, logger),
+		Auth:        service.NewAuthService(store, cfg.JWTSecret, cfg.AuthExpiry, logger),
 		Groups:      service.NewGroupService(store, logger),
 		Expenses:    service.NewExpenseService(store, logger),
 		Settlements: service.NewSettlementService(store, logger),

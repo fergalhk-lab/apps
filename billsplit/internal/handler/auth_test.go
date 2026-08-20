@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/fergalhk-lab/apps/billsplit/internal/fxrates"
 	"github.com/fergalhk-lab/apps/billsplit/internal/handler"
@@ -19,12 +20,16 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
+// testAuthExpiry is deliberately not 24h so the cookie assertions prove the
+// MaxAge tracks the configured expiry rather than a hardcoded value.
+const testAuthExpiry = 720 * time.Hour
+
 // newTestRouter registers alice and returns a router with secureCookie=false
 // (httptest doesn't use HTTPS).
 func newTestRouter(t *testing.T) http.Handler {
 	t.Helper()
 	st := testutil.NewTestStore(t)
-	auth := service.NewAuthService(st, "test-secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "test-secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	code, err := invites.GenerateInvite(context.Background(), false)
 	require.NoError(t, err)
@@ -65,7 +70,8 @@ func TestLoginHandler_SetsCookieAndReturnsIdentity(t *testing.T) {
 	require.NotNil(t, cookie, "expected a session cookie in response")
 	assert.True(t, cookie.HttpOnly, "session cookie must be HttpOnly")
 	assert.NotEmpty(t, cookie.Value, "session cookie value must not be empty")
-	assert.Equal(t, 86400, cookie.MaxAge)
+	assert.Equal(t, int(testAuthExpiry.Seconds()), cookie.MaxAge,
+		"session cookie MaxAge should track the configured auth expiry")
 
 	var resp map[string]interface{}
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&resp))

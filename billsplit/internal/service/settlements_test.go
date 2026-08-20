@@ -14,7 +14,7 @@ import (
 func setupSettlementTest(t *testing.T) (*service.AuthService, *service.InviteService, *service.GroupService, *service.SettlementService) {
 	t.Helper()
 	st := newTestStore(t)
-	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 	settlements := service.NewSettlementService(st, zaptest.NewLogger(t))
@@ -41,7 +41,7 @@ func TestAddSettlement_GroupNotFound(t *testing.T) {
 func TestAddSettlement_AppearsInListEvents(t *testing.T) {
 	st := newTestStore(t)
 	ctx := context.Background()
-	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 	settlements := service.NewSettlementService(st, zaptest.NewLogger(t))

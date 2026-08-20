@@ -1,12 +1,17 @@
 package config
 
-import "github.com/kelseyhightower/envconfig"
+import (
+	"time"
+
+	"github.com/kelseyhightower/envconfig"
+)
 
 type Config struct {
-	S3Bucket     string `envconfig:"S3_BUCKET"      required:"true"`
-	JWTSecret    string `envconfig:"JWT_SECRET"     required:"true"`
-	Port         string `envconfig:"PORT"           default:"8080"`
-	SecureCookie bool   `envconfig:"SECURE_COOKIE"  default:"true"`
+	S3Bucket     string        `envconfig:"S3_BUCKET"      required:"true"`
+	JWTSecret    string        `envconfig:"JWT_SECRET"     required:"true"`
+	Port         string        `envconfig:"PORT"           default:"8080"`
+	SecureCookie bool          `envconfig:"SECURE_COOKIE"  default:"true"`
+	AuthExpiry   time.Duration `envconfig:"AUTH_EXPIRY"    default:"24h"`
 }
 
 func Load() (Config, error) {

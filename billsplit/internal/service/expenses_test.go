@@ -15,7 +15,7 @@ import (
 func setupExpenseTest(t *testing.T) (*service.AuthService, *service.InviteService, *service.GroupService, *service.ExpenseService) {
 	t.Helper()
 	st := newTestStore(t)
-	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 	expenses := service.NewExpenseService(st, zaptest.NewLogger(t))
@@ -256,7 +256,7 @@ func TestListEvents_ExcludesReversedAcrossPagination(t *testing.T) {
 func TestListEvents_FilteringKeepsSettlements(t *testing.T) {
 	st := newTestStore(t)
 	ctx := context.Background()
-	auth := service.NewAuthService(st, "secret", zaptest.NewLogger(t))
+	auth := service.NewAuthService(st, "secret", testAuthExpiry, zaptest.NewLogger(t))
 	invites := service.NewInviteService(st, zaptest.NewLogger(t))
 	groups := service.NewGroupService(st, zaptest.NewLogger(t))
 	settlements := service.NewSettlementService(st, zaptest.NewLogger(t))
