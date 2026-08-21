@@ -1,0 +1,15 @@
+[Unit]
+Description=Dog Cam client
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/local/bin/dogcam-cam
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/dogcam/cam.env
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

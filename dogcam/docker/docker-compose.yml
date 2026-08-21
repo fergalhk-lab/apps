@@ -1,0 +1,14 @@
+services:
+  dogcam-server:
+    build:
+      context: ../..
+      dockerfile: dogcam/server/Dockerfile
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+      - "9090:9090"
+    environment:
+      CAM_API_KEY: "${CAM_API_KEY}"
+      VIEWER_PASSWORD: "${VIEWER_PASSWORD}"
+      FRAME_INTERVAL_MS: "2000"
+    restart: unless-stopped
